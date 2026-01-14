@@ -17,6 +17,8 @@ def list_project() -> Sequence[Project]:
 
 
 def add_project(name: str, description: str) -> Project:
+    if not name:
+        raise ValueError("name should not be empty")
     new_project = Project(name=name, description=description)
     with Session(engine) as session:
         session.add(new_project)
@@ -56,7 +58,7 @@ def edit_project(project: Project, name: str | None, description: str | None) ->
         session.commit()
         session.refresh(db_project)
 
-    return project
+    return db_project
 
 
 def set_project_archived(project: Project, is_archived: bool) -> Project:
@@ -64,7 +66,7 @@ def set_project_archived(project: Project, is_archived: bool) -> Project:
         db_project = session.get(Project, project.id)
         if db_project is None:
             raise ProjectNotFoundError
-        project.archived = is_archived
+        db_project.archived = is_archived
         session.add(db_project)
         session.commit()
         session.refresh(db_project)
