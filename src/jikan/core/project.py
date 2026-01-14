@@ -57,8 +57,7 @@ def edit_project(project: Project, name: str | None, description: str | None) ->
         session.add(db_project)
         session.commit()
         session.refresh(db_project)
-
-    return db_project
+        return db_project
 
 
 def set_project_archived(project: Project, is_archived: bool) -> Project:
