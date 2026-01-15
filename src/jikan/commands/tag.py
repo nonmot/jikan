@@ -58,5 +58,5 @@ def delete(id: Annotated[int, typer.Option(help="ID of tag to be deleted", defau
         error("Tag not found")
         raise typer.Exit(code=1) from e
     except Exception as e:
-        error(f"Failed to delete project: {e}")
+        error(f"Failed to delete tag: {e}")
         raise typer.Exit(code=1) from e

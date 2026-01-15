@@ -74,7 +74,11 @@ def edit(
     try:
         project = get_project(id)
         updated_project = edit_project(project, name, description)
-        success(f"project edited. name: {updated_project.name}, description: {project.description}")
+        success(
+            f"project edited. "
+            f"name: {updated_project.name}, "
+            f"description: {updated_project.description}"
+        )
     except ProjectNotFoundError as e:
         error("Project not found")
         raise typer.Exit(code=1) from e

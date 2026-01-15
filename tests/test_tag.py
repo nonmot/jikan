@@ -30,7 +30,7 @@ class TestTagList:
         assert "Name" in result.output
 
 
-class TestTadAdd:
+class TestTagAdd:
     @staticmethod
     def mock_tag_add(name: str) -> Tag:
         return Tag(name=name)
@@ -43,12 +43,12 @@ class TestTadAdd:
         assert "Success" in result.output
         assert "Tag created. name: Test" in result.output
 
-    def test_name_should_be_given(self, mocker: MockFixture):
+    def test_name_should_be_given(self):
         result = runner.invoke(app, ["tag", "add"])
 
         assert result.exit_code == 2
 
-    def test_name_should_not_be_empty(self, mocker: MockFixture):
+    def test_name_should_not_be_empty(self):
         result = runner.invoke(app, ["tag", "add", "--name"])
 
         assert result.exit_code == 2
