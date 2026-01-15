@@ -7,7 +7,8 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 import jikan.core.project as project_core
-from jikan.models import Project
+import jikan.core.tag as tag_core
+from jikan.models import Project, Tag
 
 
 @pytest.fixture()
@@ -22,7 +23,9 @@ def test_engine() -> Generator[Engine, None, None]:
 
 @pytest.fixture()
 def use_test_engine(mocker: MockerFixture, test_engine: Engine) -> None:
-    mocker.patch.object(project_core, "engine", test_engine)
+    core_modules = (project_core, tag_core)
+    for module in core_modules:
+        mocker.patch.object(module, "engine", test_engine)
 
 
 @pytest.fixture()
@@ -35,4 +38,16 @@ def seed_projects(use_test_engine: None) -> None:
 
     with Session(project_core.engine) as session:
         session.add_all(projects)
+        session.commit()
+
+
+@pytest.fixture()
+def seed_tags(use_test_engine: None) -> None:
+    tags = [
+        Tag(id=1, name="tag-1"),
+        Tag(id=2, name="tag-2"),
+    ]
+
+    with Session(tag_core.engine) as session:
+        session.add_all(tags)
         session.commit()

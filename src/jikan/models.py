@@ -41,11 +41,22 @@ def create_db_and_tables() -> None:
         return
     else:
         SQLModel.metadata.create_all(engine)
+
         project1 = Project(name="Test1", description="This is a test project", archived=False)
         project2 = Project(name="Test2", archived=False)
         project3 = Project(name="Test3", archived=False)
+
+        tag1 = Tag(name="Tag1")
+        tag2 = Tag(name="Tag2")
+        tag3 = Tag(name="Tag3")
+
         with Session(engine) as session:
             session.add(project1)
             session.add(project2)
             session.add(project3)
+
+            session.add(tag1)
+            session.add(tag2)
+            session.add(tag3)
+
             session.commit()

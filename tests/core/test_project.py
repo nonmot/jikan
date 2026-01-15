@@ -42,8 +42,7 @@ class TestProjectAdd:
 
     def test_added_project_property(self, use_test_engine: None):
         project = add_project(name="Test Project", description="This is a test project")
-        id = project.id
-        added_project = get_project(id)
+        added_project = get_project(project.id)
 
         assert added_project.name == "Test Project"
         assert added_project.description == "This is a test project"
