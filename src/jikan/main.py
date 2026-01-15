@@ -4,7 +4,7 @@ from rich.console import Console
 from rich.table import Table
 from typer import Typer, colors, echo, style
 
-from jikan.commands import project
+from jikan.commands import project, tag
 from jikan.models import create_db_and_tables
 
 console = Console()
@@ -18,11 +18,7 @@ def init():
 
 
 app.add_typer(project.app, name="project")
-
-
-@app.command()
-def tag():
-    print("Not implemented.")
+app.add_typer(tag.app, name="tag")
 
 
 @app.command()
