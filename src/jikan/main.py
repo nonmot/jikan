@@ -1,3 +1,4 @@
+from typing import Annotated
 import typer
 from rich import print
 from rich.console import Console
@@ -5,7 +6,9 @@ from rich.table import Table
 from typer import Typer, colors, echo, style
 
 from jikan.commands import project, tag
+from jikan.core.entry import get_running_entry, list_time_entry, print_table_time_entry, start_time_entry, stop_time_entry
 from jikan.models import create_db_and_tables
+from jikan.lib.print import error
 
 console = Console()
 
@@ -22,13 +25,24 @@ app.add_typer(tag.app, name="tag")
 
 
 @app.command()
-def start():
-    print("Not implemented.")
+def start(
+    id: Annotated[int, typer.Option(help="ID of associated project", default=...)],
+    description: Annotated[str, typer.Option(help="Description of time entry")] = "",
+):
+    try:
+        start_time_entry(id, description)
+    except Exception as e:
+        error(f"Failed to start. {e}")
+        raise typer.Exit(code=1)
 
 
 @app.command()
 def stop():
-    print("Not implemented.")
+    try:
+        stop_time_entry()
+    except Exception as e:
+        error(f"Failed to stop. {e}")
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -38,12 +52,21 @@ def switch():
 
 @app.command()
 def status():
-    print("Jikan version 0.1.0 :boom:")
+    running_entry = get_running_entry()
+
+    if len(running_entry) == 0:
+        print("No time entry running.")
+        raise typer.Exit()
+    elif len(running_entry) > 1:
+        error("Multiple time entry running")
+        raise typer.Exit(code=1)
+    
+    print(f"Time entry running: {running_entry[0]}")
 
 
 @app.command()
 def list():
-    print("Not implemented.")
+    print_table_time_entry()
 
 
 @app.command()
