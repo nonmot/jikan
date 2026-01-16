@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from datetime import datetime
 
 import pytest
 from pytest_mock import MockerFixture
@@ -6,9 +7,10 @@ from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
+import jikan.core.entry as entry_core
 import jikan.core.project as project_core
 import jikan.core.tag as tag_core
-from jikan.models import Project, Tag
+from jikan.models import Entry, Project, Tag
 
 
 @pytest.fixture()
@@ -23,7 +25,7 @@ def test_engine() -> Generator[Engine, None, None]:
 
 @pytest.fixture()
 def use_test_engine(mocker: MockerFixture, test_engine: Engine) -> None:
-    core_modules = (project_core, tag_core)
+    core_modules = (project_core, tag_core, entry_core)
     for module in core_modules:
         mocker.patch.object(module, "engine", test_engine)
 
@@ -50,4 +52,18 @@ def seed_tags(use_test_engine: None) -> None:
 
     with Session(tag_core.engine) as session:
         session.add_all(tags)
+        session.commit()
+
+
+@pytest.fixture()
+def seed_active_entry(use_test_engine: None) -> None:
+    project = Project(id=1, name="active-1", description="a1", archived=False)
+
+    entry = Entry(
+        id=1, project_id=project.id, title="Entry 1", description="Entry 1", start_at=datetime.now()
+    )
+
+    with Session(entry_core.engine) as session:
+        session.add(project)
+        session.add(entry)
         session.commit()
