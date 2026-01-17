@@ -6,7 +6,7 @@ from jikan.lib.print import success
 from sqlmodel import Session, select, col
 
 from jikan.models import Entry, engine
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def start_time_entry(id: int, description: str) -> Entry:
@@ -66,18 +66,7 @@ def list_time_entry() -> Sequence[Entry]:
         time_entries = session.exec(statement).all()
         return time_entries
 
-
-def print_table_time_entry() -> None:
-    console = Console()
-    time_entries = list_time_entry()
-    table = Table("ID", "Description", "Start at", "End at", "Created at", "Updated at")
-    for entry in time_entries:
-        table.add_row(
-            str(entry.id),
-            entry.description,
-            str(entry.start_at),
-            str(entry.end_at),
-            str(entry.created_at),
-            str(entry.updated_at),
-        )
-    console.print(table)
+def running_time(entry: Entry) -> timedelta:
+    now = datetime.now()
+    running_time = now - entry.start_at
+    return running_time

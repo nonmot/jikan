@@ -6,7 +6,8 @@ from rich.table import Table
 from typer import Typer, colors, echo, style
 
 from jikan.commands import project, tag
-from jikan.core.entry import get_running_entry, list_time_entry, print_table_time_entry, start_time_entry, stop_time_entry
+from jikan.core.entry import get_running_entry, list_time_entry, running_time, start_time_entry, stop_time_entry
+from jikan.lib.datetime import format_datetime, format_timedelta
 from jikan.models import create_db_and_tables
 from jikan.lib.print import error
 
@@ -61,12 +62,23 @@ def status():
         error("Multiple time entry running")
         raise typer.Exit(code=1)
     
-    print(f"Time entry running: {running_entry[0]}")
+    print(f"Time entry running: {format_timedelta(running_time(running_entry[0]))}s")
 
 
 @app.command()
 def list():
-    print_table_time_entry()
+    time_entries = list_time_entry()
+    table = Table("ID", "Description", "Start at", "End at", "Created at", "Updated at")
+    for entry in time_entries:
+        table.add_row(
+            str(entry.id),
+            entry.description,
+            format_datetime(entry.start_at),
+            format_datetime(entry.end_at) if entry.end_at is not None else "None",
+            format_datetime(entry.created_at),
+            format_datetime(entry.updated_at),
+        )
+    console.print(table)
 
 
 @app.command()

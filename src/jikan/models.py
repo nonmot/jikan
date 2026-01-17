@@ -28,6 +28,9 @@ class Entry(SQLModel, table=True):
     created_at: datetime
     updated_at: datetime
 
+    def __str__(self) -> str:
+        return f"Entry(id={self.id}, description=\"{self.description}\", start_at={self.start_at}, end_at={self.end_at})"
+
 
 class Tag(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
