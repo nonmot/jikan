@@ -22,11 +22,19 @@ class Project(SQLModel, table=True):
 class Entry(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     project_id: int = Field(foreign_key="project.id")
+    title: str
     description: str
     start_at: datetime
     end_at: datetime | None = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime = Field(default_factory=datetime.now, nullable=True)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    def __str__(self) -> str:
+        return (
+            f"Entry(id={self.id}, "
+            f'description="{self.description}", '
+            f"start_at={self.start_at}, end_at={self.end_at})"
+        )
 
 
 class Tag(SQLModel, table=True):
