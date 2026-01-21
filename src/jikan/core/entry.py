@@ -14,6 +14,44 @@ class EntryNotRunningError(Exception):
     pass
 
 
+class EntryNotFoundError(Exception):
+    pass
+
+
+def get_entry(id: int) -> Entry:
+    with Session(engine) as session:
+        statement = select(Entry).where(Entry.id == id)
+        entry = session.exec(statement).one_or_none()
+        if entry is None:
+            raise EntryNotFoundError
+        return entry
+
+
+def edit_entry(entry: Entry, title: str | None, description: str | None) -> Entry:
+    with Session(engine) as session:
+        db_entry = session.get(Entry, entry.id)
+        if db_entry is None:
+            raise EntryNotFoundError
+        if title is not None:
+            db_entry.title = title
+        if description is not None:
+            db_entry.description = description
+
+        session.add(db_entry)
+        session.commit()
+        session.refresh(db_entry)
+        return db_entry
+
+
+def delete_entry(entry: Entry) -> None:
+    with Session(engine) as session:
+        db_entry = session.get(Entry, entry.id)
+        if db_entry is None:
+            raise EntryNotFoundError
+        session.delete(db_entry)
+        session.commit()
+
+
 def start_time_entry(project_id: int, title: str, description: str) -> Entry:
     running_entry = get_running_entry()
     if running_entry != []:

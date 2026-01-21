@@ -9,7 +9,11 @@ from typer import Typer, colors, echo, style
 from jikan.commands import project, tag
 from jikan.core.entry import (
     EntryAlreadyRunningError,
+    EntryNotFoundError,
     EntryNotRunningError,
+    delete_entry,
+    edit_entry,
+    get_entry,
     get_running_entry,
     list_time_entry,
     running_time,
@@ -104,13 +108,43 @@ def list():
 
 
 @app.command()
-def edit():
-    print("Not implemented.")
+def edit(
+    id: Annotated[int, typer.Option(help="ID of time entry to be edited", default=...)],
+    title: Annotated[str | None, typer.Option(help="Title of time entry")] = None,
+    description: Annotated[str | None, typer.Option(help="Description of time entry")] = None,
+):
+    if title is None and description is None:
+        error("Either title or description must be specified")
+        raise typer.Exit(code=1) from None
+
+    try:
+        entry = get_entry(id)
+        edit_entry(entry, title, description)
+        success("Entry edited")
+    except EntryNotFoundError as e:
+        error("Entry not found")
+        raise typer.Exit(code=1) from e
+    except Exception as e:
+        error(f"Failed to edit entry: {e}")
+        raise typer.Exit(code=1) from e
 
 
 @app.command()
-def delete():
-    print("Not implemented.")
+def delete(id: Annotated[int, typer.Option(help="ID of entry to be deleted", default=...)]):
+    try:
+        entry = get_entry(id)
+        print(entry.model_dump())
+        _ = typer.confirm("Are you sure you want to delete it?", abort=True)
+        delete_entry(entry)
+        success("Entry deleted")
+    except typer.Abort as e:
+        raise typer.Exit(code=1) from e
+    except EntryNotFoundError as e:
+        error("Entry not found")
+        raise typer.Exit(code=1) from e
+    except Exception as e:
+        error("Failed to delete entry")
+        raise typer.Exit(code=1) from e
 
 
 @app.command()
