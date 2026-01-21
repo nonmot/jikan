@@ -67,3 +67,29 @@ def seed_active_entry(use_test_engine: None) -> None:
         session.add(project)
         session.add(entry)
         session.commit()
+
+
+@pytest.fixture()
+def seed_entries(use_test_engine: None) -> None:
+    project = Project(id=1, name="project-1")
+    entries = [
+        Entry(
+            id=1,
+            project_id=project.id,
+            title="entry-1",
+            description="entry 1",
+            start_at=datetime.now(),
+        ),
+        Entry(
+            id=2,
+            project_id=project.id,
+            title="entry-2",
+            description="entry 2",
+            start_at=datetime.now(),
+        ),
+    ]
+
+    with Session(tag_core.engine) as session:
+        session.add(project)
+        session.add_all(entries)
+        session.commit()

@@ -1,13 +1,86 @@
+from datetime import datetime
+
 import pytest
 
 from jikan.core.entry import (
     EntryAlreadyRunningError,
+    EntryNotFoundError,
     EntryNotRunningError,
+    delete_entry,
+    edit_entry,
+    get_entry,
     get_running_entry,
     list_time_entry,
     start_time_entry,
     stop_time_entry,
 )
+from jikan.models import Entry
+
+
+class TestGetEntry:
+    def test_get_entry(self, seed_entries: None):
+        entry = get_entry(1)
+        assert entry is not None
+
+    def test_entry_not_found(self, seed_entries: None):
+        with pytest.raises(EntryNotFoundError):
+            get_entry(1000)
+
+
+class TestEditEntry:
+    def test_success(self, seed_entries: None):
+        entry = get_entry(1)
+        edit_entry(entry, "Edited", "Edited")
+        entry = get_entry(1)
+
+        assert entry.title == "Edited"
+        assert entry.description == "Edited"
+
+    def test_options_are_none(self, seed_entries: None):
+        entry_before = get_entry(1)
+        edit_entry(entry_before, None, None)
+        entry_after = get_entry(1)
+
+        assert entry_after.title is not None
+        assert entry_after.description is not None
+        assert entry_before.title == entry_after.title
+        assert entry_before.description == entry_after.description
+
+    def test_description_is_empty(self, seed_entries: None):
+        entry_before = get_entry(1)
+        edit_entry(entry_before, "Edited", "")
+        entry_after = get_entry(1)
+
+        assert entry_after.title == "Edited"
+        assert entry_after.description == ""
+
+    def test_entry_not_found(self, seed_entries: None):
+        not_exist_entry = Entry(
+            id=1000, project_id=1000, title="entry", description="entry", start_at=datetime.now()
+        )
+        with pytest.raises(EntryNotFoundError):
+            edit_entry(not_exist_entry, "edited", "edited")
+
+
+class TestEntryDelete:
+    def test_success(self, seed_entries: None):
+        entries_before = list_time_entry()
+        entry = get_entry(1)
+        delete_entry(entry)
+        entries_after = list_time_entry()
+
+        assert len(entries_before) - 1 == len(entries_after)
+
+    def test_entry_not_found(self, seed_entries: None):
+        not_exist_entry = Entry(
+            id=1000,
+            project_id=1,
+            title="not-exist-entry",
+            description="not exist entry",
+            start_at=datetime.now(),
+        )
+        with pytest.raises(EntryNotFoundError):
+            delete_entry(not_exist_entry)
 
 
 class TestStartTimeEntry:
