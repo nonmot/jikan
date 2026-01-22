@@ -33,7 +33,7 @@ def list():
 
 @app.command()
 def add(
-    name: Annotated[str, typer.Option(help="Name of project", default=...)],
+    name: Annotated[str, typer.Option("--name", "-n", help="Name of project")],
     description: Annotated[
         str, typer.Option("--description", "-d", help="Description of project")
     ] = "",
@@ -44,10 +44,10 @@ def add(
 
 
 @app.command()
-def delete(id: Annotated[int, typer.Option(help="ID of project to be deleted", default=...)]):
+def delete(id: Annotated[int, typer.Argument(help="ID of project to be deleted")]):
     try:
         project = get_project(id)
-        print(project.model_dump())
+        print(str(project))
         _ = typer.confirm("Are you sure you want to delete it?", abort=True)
         delete_project(project)
         success("Project deleted.")
@@ -61,7 +61,7 @@ def delete(id: Annotated[int, typer.Option(help="ID of project to be deleted", d
 
 @app.command()
 def edit(
-    id: Annotated[int, typer.Option(help="ID of project to be edited", default=...)],
+    id: Annotated[int, typer.Argument(help="ID of project to be edited")],
     name: Annotated[str | None, typer.Option(help="Name of project")] = None,
     description: Annotated[
         str | None, typer.Option("--description", "-d", help="Description of project")
@@ -88,7 +88,7 @@ def edit(
 
 
 @app.command()
-def archive(id: Annotated[int, typer.Option(help="ID of project to be archived", default=...)]):
+def archive(id: Annotated[int, typer.Argument(help="ID of project to be archived")]):
     try:
         project = get_project(id)
         set_project_archived(project, True)
@@ -102,7 +102,7 @@ def archive(id: Annotated[int, typer.Option(help="ID of project to be archived",
 
 
 @app.command()
-def unarchive(id: Annotated[int, typer.Option(help="ID of project to be unarchived", default=...)]):
+def unarchive(id: Annotated[int, typer.Argument(help="ID of project to be unarchived")]):
     try:
         project = get_project(id)
         set_project_archived(project, False)

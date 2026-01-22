@@ -208,9 +208,27 @@ class TestEdit:
             ),
         )
 
-        result = runner.invoke(
-            app, ["edit", "--id", "1", "--title", "Edited", "--description", "Edited"]
+        result = runner.invoke(app, ["edit", "1", "--title", "Edited", "--description", "Edited"])
+
+        assert result.exit_code == 0
+        assert "Entry edited" in result.output
+        assert "Success" in result.output
+
+    def test_short_option(self, mocker: MockFixture):
+        mocker.patch(
+            "jikan.main.get_entry",
+            return_value=Entry(
+                id=1, project_id=1, title="Entry", description="Entry", start_at=datetime.now()
+            ),
         )
+        mocker.patch(
+            "jikan.main.edit_entry",
+            return_value=Entry(
+                id=1, project_id=1, title="Edited", description="Edited", start_at=datetime.now()
+            ),
+        )
+
+        result = runner.invoke(app, ["edit", "1", "-t", "Edited", "-d", "Edited"])
 
         assert result.exit_code == 0
         assert "Entry edited" in result.output
@@ -222,7 +240,7 @@ class TestEdit:
         assert result.exit_code == 2
 
     def test_title_or_description_should_be_passed(self):
-        result = runner.invoke(app, ["edit", "--id", "1"])
+        result = runner.invoke(app, ["edit", "1"])
 
         assert result.exit_code == 1
 
@@ -232,28 +250,26 @@ class TestEdit:
             side_effect=EntryNotFoundError(),
         )
 
-        result = runner.invoke(
-            app, ["edit", "--id", "1", "--title", "Edited", "--description", "Edited"]
-        )
+        result = runner.invoke(app, ["edit", "1", "--title", "Edited", "--description", "Edited"])
         assert result.exit_code == 1
 
 
 class TestDelete:
     def test_success(self, mocker: MockFixture):
-        mocker.patch(
-            "jikan.main.get_entry",
-            return_value=Entry(
-                id=1, project_id=1, title="Entry", description="Entry", start_at=datetime.now()
-            ),
+        entry = Entry(
+            id=1, project_id=1, title="Entry", description="Entry", start_at=datetime.now()
         )
+
+        mocker.patch("jikan.main.get_entry", return_value=entry)
         mocker.patch("jikan.main.typer.confirm", return_value=True)
         mocker.patch(
             "jikan.main.delete_entry",
             return_value=None,
         )
 
-        result = runner.invoke(app, ["delete", "--id", "1"])
+        result = runner.invoke(app, ["delete", "1"])
         assert result.exit_code == 0
+        assert str(entry) in result.output
         assert "Entry deleted" in result.output
 
     def test_id_not_passed(self):
@@ -265,7 +281,7 @@ class TestDelete:
             "jikan.main.get_entry",
             side_effect=EntryNotFoundError(),
         )
-        result = runner.invoke(app, ["delete", "--id", "1"])
+        result = runner.invoke(app, ["delete", "1"])
         assert result.exit_code == 1
 
     def test_reject_confirmation(self, mocker: MockFixture):
@@ -275,5 +291,5 @@ class TestDelete:
         )
         mocker.patch("jikan.main.typer.confirm", return_value=False)
 
-        result = runner.invoke(app, ["delete", "--id", "1"])
+        result = runner.invoke(app, ["delete", "1"])
         assert result.exit_code == 1

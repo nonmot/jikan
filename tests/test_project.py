@@ -64,6 +64,28 @@ class TestProjectAdd:
         assert "New Mock Project" in result.output
         assert "This is a test project" in result.output
 
+    def test_short_options(self, mocker: MockFixture):
+        mocker.patch(
+            "jikan.commands.project.add_project",
+            side_effect=self.mock_project_add,
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "project",
+                "add",
+                "-n",
+                "\nNew Mock Project\n",
+                "-d",
+                "\nThis is a test project\n",
+            ],
+        )
+        assert result.exit_code == 0
+        assert "Success" in result.output
+        assert "New Mock Project" in result.output
+        assert "This is a test project" in result.output
+
     def test_short_options_success(self, mocker: MockFixture):
         mocker.patch(
             "jikan.commands.project.add_project",
@@ -95,14 +117,13 @@ class TestProjectAdd:
 
 class TestProjectDelete:
     def test_success(self, mocker: MockFixture):
-        mocker.patch(
-            "jikan.commands.project.get_project",
-            return_value=Project(id=1, name="Test", description="This is a test project"),
-        )
+        project = Project(id=1, name="Test", description="This is a test project")
+        mocker.patch("jikan.commands.project.get_project", return_value=project)
         mocker.patch("jikan.commands.project.typer.confirm", return_value=True)
         mocker.patch("jikan.commands.project.delete_project", return_value=None)
-        result = runner.invoke(app, ["project", "delete", "--id", "1"])
+        result = runner.invoke(app, ["project", "delete", "1"])
         assert result.exit_code == 0
+        assert str(project) in result.output
         assert "Success" in result.output
 
     def test_without_id_validation(self):
@@ -114,7 +135,7 @@ class TestProjectDelete:
             "jikan.commands.project.get_project",
             side_effect=ProjectNotFoundError(),
         )
-        result = runner.invoke(app, ["project", "delete", "--id", "1"])
+        result = runner.invoke(app, ["project", "delete", "1"])
         assert result.exit_code == 1
         assert "Project not found" in result.output
 
@@ -124,7 +145,7 @@ class TestProjectDelete:
             return_value=Project(id=1, name="Test", description="This is a test project"),
         )
         mocker.patch("jikan.commands.project.typer.confirm", side_effect=Abort)
-        result = runner.invoke(app, ["project", "delete", "--id", "1"])
+        result = runner.invoke(app, ["project", "delete", "1"])
 
         assert result.exit_code == 1
 
@@ -144,7 +165,6 @@ class TestProjectEdit:
             [
                 "project",
                 "edit",
-                "--id",
                 "1",
                 "--name",
                 "Test",
@@ -165,12 +185,12 @@ class TestProjectEdit:
             "jikan.commands.project.edit_project",
             return_value=Project(name="Test", description="This is a test project"),
         )
-        result = runner.invoke(app, ["project", "edit", "--id", "1", "--name", "Test"])
+        result = runner.invoke(app, ["project", "edit", "1", "--name", "Test"])
         assert result.exit_code == 0
         assert "Success" in result.output
 
     def test_without_options_validation(self):
-        result = runner.invoke(app, ["project", "edit", "--id", "1"])
+        result = runner.invoke(app, ["project", "edit", "1"])
         assert result.exit_code == 1
 
     def test_project_not_found_validation(self, mocker: MockFixture):
@@ -178,14 +198,12 @@ class TestProjectEdit:
             "jikan.commands.project.get_project",
             side_effect=ProjectNotFoundError(),
         )
-        result = runner.invoke(app, ["project", "edit", "--id", "1", "--name", "Test"])
+        result = runner.invoke(app, ["project", "edit", "1", "--name", "Test"])
         assert result.exit_code == 1
         assert "Project not found" in result.output
 
     def test_options_empty_validation(self):
-        result = runner.invoke(
-            app, ["project", "edit", "--id", "1", "--name", "", "--description", ""]
-        )
+        result = runner.invoke(app, ["project", "edit", "1", "--name", "", "--description", ""])
         assert result.exit_code == 1
         assert "You must specify either name or description" in result.output
 
@@ -200,7 +218,7 @@ class TestProjectArchive:
             "jikan.commands.project.set_project_archived",
             return_value=None,
         )
-        result = runner.invoke(app, ["project", "archive", "--id", "1"])
+        result = runner.invoke(app, ["project", "archive", "1"])
 
         assert result.exit_code == 0
 
@@ -213,7 +231,7 @@ class TestProjectArchive:
             "jikan.commands.project.set_project_archived",
             return_value=None,
         )
-        result = runner.invoke(app, ["project", "archive", "--id", "1"])
+        result = runner.invoke(app, ["project", "archive", "1"])
 
         assert result.exit_code == 0
 
@@ -233,7 +251,7 @@ class TestProjectUnarchive:
             "jikan.commands.project.set_project_archived",
             return_value=None,
         )
-        result = runner.invoke(app, ["project", "unarchive", "--id", "1"])
+        result = runner.invoke(app, ["project", "unarchive", "1"])
 
         assert result.exit_code == 0
 
@@ -246,7 +264,7 @@ class TestProjectUnarchive:
             "jikan.commands.project.set_project_archived",
             return_value=None,
         )
-        result = runner.invoke(app, ["project", "unarchive", "--id", "1"])
+        result = runner.invoke(app, ["project", "unarchive", "1"])
 
         assert result.exit_code == 0
 
