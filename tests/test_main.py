@@ -61,7 +61,7 @@ class TestStart:
 
         result = runner.invoke(app, ["start", "--title", "Test", "--description", "Test"])
 
-        assert result.exit_code == 2
+        assert result.exit_code == 0
 
     def test_core_func_raise_exception(self, mocker: MockFixture):
         mocker.patch(

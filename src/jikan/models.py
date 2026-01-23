@@ -1,7 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
-from sqlmodel import Field, Session, SQLModel, create_engine, inspect
+from sqlmodel import Field, Relationship, Session, SQLModel, create_engine, inspect
+
+from jikan.lib.datetime import utc_now
 
 SQLITE_FILE_NAME = "database.db"
 APP_DIR = Path.home() / ".jikan"
@@ -12,36 +14,52 @@ SQLITE_URL = f"sqlite:///{SQLITE_PATH}"
 engine = create_engine(SQLITE_URL)
 
 
+class EntryTagLink(SQLModel, table=True):
+    entry_id: int = Field(foreign_key="entry.id", ondelete="CASCADE", primary_key=True)
+    tag_id: int = Field(foreign_key="tag.id", ondelete="CASCADE", primary_key=True)
+
+
 class Project(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-    name: str
-    description: str | None = None
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True, unique=True)
+    description: str = Field(default="")
     archived: bool = Field(default=False)
+
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+    entries: list["Entry"] = Relationship(back_populates="project")
 
     def __str__(self) -> str:
         return f"Project(id={self.id}, name={self.name})"
 
 
-class Entry(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-    project_id: int = Field(foreign_key="project.id")
-    title: str
-    description: str
-    start_at: datetime
-    end_at: datetime | None = None
-    created_at: datetime = Field(default_factory=datetime.now, nullable=True)
-    updated_at: datetime = Field(default_factory=datetime.now)
-
-    def __str__(self) -> str:
-        return f"Entry(id={self.id}, title={self.title})"
-
-
 class Tag(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-    name: str
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True, unique=True)
+    created_at: datetime = Field(default_factory=utc_now)
+
+    entries: list["Entry"] = Relationship(back_populates="tags", link_model=EntryTagLink)
 
     def __str__(self) -> str:
         return f"Tag(id={self.id}, name={self.name})"
+
+
+class Entry(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    title: str | None = Field(default=None)
+    description: str | None = Field(default=None)
+    start_at: datetime = Field(default_factory=utc_now)
+    end_at: datetime | None = Field(default=None, index=True)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+    project_id: int | None = Field(default=None, foreign_key="project.id")
+    project: Project | None = Relationship(back_populates="entries")
+    tags: list[Tag] = Relationship(back_populates="entries", link_model=EntryTagLink)
+
+    def __str__(self) -> str:
+        return f"Entry(id={self.id}, title={self.title})"
 
 
 def create_db_and_tables() -> None:
@@ -52,21 +70,39 @@ def create_db_and_tables() -> None:
     else:
         SQLModel.metadata.create_all(engine)
 
-        project1 = Project(name="Test1", description="This is a test project", archived=False)
-        project2 = Project(name="Test2", archived=False)
-        project3 = Project(name="Test3", archived=False)
-
-        tag1 = Tag(name="Tag1")
-        tag2 = Tag(name="Tag2")
-        tag3 = Tag(name="Tag3")
-
+        project = Project(
+            name="Learn about jikan",
+            description="Learn about jikan to manage your time effectively!",
+            archived=False,
+        )
         with Session(engine) as session:
-            session.add(project1)
-            session.add(project2)
-            session.add(project3)
+            session.add(project)
+            session.commit()
+            session.refresh(project)
 
+        tag1 = Tag(name="Read docs")
+        tag2 = Tag(name="Use jikan")
+        with Session(engine) as session:
             session.add(tag1)
             session.add(tag2)
-            session.add(tag3)
+            session.commit()
+            session.refresh(tag1)
+            session.refresh(tag2)
 
+        assert project.id is not None
+        entry = Entry(
+            title="Install jikan and give it a try",
+            description="Dive in jikan to explore what it's all about!",
+            project=project,
+            tags=[tag1, tag2],
+        )
+        inbox_entry = Entry(
+            title="Inbox",
+            tags=[tag1, tag2],
+        )
+        entry.end_at = utc_now() + timedelta(seconds=10)
+        inbox_entry.end_at = utc_now() + timedelta(seconds=10)
+        with Session(engine) as session:
+            session.add(entry)
+            session.add(inbox_entry)
             session.commit()

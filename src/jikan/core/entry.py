@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from sqlmodel import Session, col, select
 
+from jikan.lib.datetime import ensure_utc_aware, utc_now
 from jikan.models import Entry, engine
 
 
@@ -52,19 +53,15 @@ def delete_entry(entry: Entry) -> None:
         session.commit()
 
 
-def start_time_entry(project_id: int, title: str, description: str) -> Entry:
+def start_time_entry(project_id: int | None, title: str, description: str) -> Entry:
     running_entry = get_running_entry()
     if running_entry != []:
         raise EntryAlreadyRunningError("Time entry is already running.")
 
-    start_at = datetime.now()
     new_entry = Entry(
         project_id=project_id,
         title=title,
         description=description,
-        start_at=start_at,
-        created_at=start_at,
-        updated_at=start_at,
     )
     with Session(engine) as session:
         session.add(new_entry)
@@ -83,7 +80,13 @@ def stop_time_entry() -> Entry:
         raise RuntimeError("Multiple time entries running")
 
     entry = running_entry[0]
-    now = datetime.now()
+    now = utc_now()
+
+    if ensure_utc_aware(entry.start_at) > now:
+        raise RuntimeError(
+            "Cannot stop: start time is in the future. Edit start_at to be <= now and retry."
+        )
+
     with Session(engine) as session:
         entry.end_at = now
         entry.updated_at = now
