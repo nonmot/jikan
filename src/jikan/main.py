@@ -4,7 +4,7 @@ import typer
 from rich import print
 from rich.console import Console
 from rich.table import Table
-from typer import Typer, colors, echo, style
+from typer import Typer
 
 from jikan.commands import project, tag
 from jikan.core.entry import (
@@ -21,7 +21,7 @@ from jikan.core.entry import (
     stop_time_entry,
 )
 from jikan.lib.datetime import format_datetime, format_timedelta
-from jikan.lib.print import error, success
+from jikan.lib.print import error, success, warn
 from jikan.models import create_db_and_tables
 
 console = Console()
@@ -41,8 +41,10 @@ app.add_typer(tag.app, name="tag")
 @app.command()
 def start(
     id: Annotated[int, typer.Option(help="ID of associated project", default=...)],
-    title: Annotated[str, typer.Option(help="Title of time entry")] = "",
-    description: Annotated[str, typer.Option(help="Description of time entry")] = "",
+    title: Annotated[str, typer.Option("--title", "-t", help="Title of time entry")] = "",
+    description: Annotated[
+        str, typer.Option("--description", "-d", help="Description of time entry")
+    ] = "",
 ):
     try:
         new_entry = start_time_entry(id, title, description)
@@ -70,7 +72,7 @@ def stop():
 
 @app.command()
 def switch():
-    print("Not implemented.")
+    warn("Not implemented.")
 
 
 @app.command()
@@ -109,9 +111,11 @@ def list():
 
 @app.command()
 def edit(
-    id: Annotated[int, typer.Option(help="ID of time entry to be edited", default=...)],
-    title: Annotated[str | None, typer.Option(help="Title of time entry")] = None,
-    description: Annotated[str | None, typer.Option(help="Description of time entry")] = None,
+    id: Annotated[int, typer.Argument(help="ID of time entry to be edited")],
+    title: Annotated[str | None, typer.Option("--title", "-t", help="Title of time entry")] = None,
+    description: Annotated[
+        str | None, typer.Option("--description", "-d", help="Description of time entry")
+    ] = None,
 ):
     if title is None and description is None:
         error("Either title or description must be specified")
@@ -130,10 +134,10 @@ def edit(
 
 
 @app.command()
-def delete(id: Annotated[int, typer.Option(help="ID of entry to be deleted", default=...)]):
+def delete(id: Annotated[int, typer.Argument(help="ID of entry to be deleted")]):
     try:
         entry = get_entry(id)
-        print(entry.model_dump())
+        print(str(entry))
         _ = typer.confirm("Are you sure you want to delete it?", abort=True)
         delete_entry(entry)
         success("Entry deleted")
@@ -149,24 +153,9 @@ def delete(id: Annotated[int, typer.Option(help="ID of entry to be deleted", def
 
 @app.command()
 def report():
-    print("Not implemented.")
+    warn("Not implemented.")
 
 
 @app.command()
 def export():
-    print("Not implemented.")
-
-
-@app.command()
-def dev():
-    """For development"""
-    msg_warning = style("Warning", fg=colors.WHITE, bg=colors.RED)
-    echo(msg_warning + ": This is a command for development.")
-
-    table = Table("Name", "Item")
-    table.add_row("Package", "Jikan")
-    table.add_row("Version", "0.1.0")
-    table.add_row("Auther", "nonmot")
-    console.print(table)
-
-    raise typer.Exit(code=1)
+    warn("Not implemented.")

@@ -18,6 +18,9 @@ class Project(SQLModel, table=True):
     description: str | None = None
     archived: bool = Field(default=False)
 
+    def __str__(self) -> str:
+        return f"Project(id={self.id}, name={self.name})"
+
 
 class Entry(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
@@ -30,16 +33,15 @@ class Entry(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.now)
 
     def __str__(self) -> str:
-        return (
-            f"Entry(id={self.id}, "
-            f'description="{self.description}", '
-            f"start_at={self.start_at}, end_at={self.end_at})"
-        )
+        return f"Entry(id={self.id}, title={self.title})"
 
 
 class Tag(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     name: str
+
+    def __str__(self) -> str:
+        return f"Tag(id={self.id}, name={self.name})"
 
 
 def create_db_and_tables() -> None:

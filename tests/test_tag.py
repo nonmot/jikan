@@ -43,6 +43,14 @@ class TestTagAdd:
         assert "Success" in result.output
         assert "Tag created. name: Test" in result.output
 
+    def test_short_options(self, mocker: MockFixture):
+        mocker.patch("jikan.commands.tag.add_tag", side_effect=self.mock_tag_add)
+        result = runner.invoke(app, ["tag", "add", "-n", "Test"])
+
+        assert result.exit_code == 0
+        assert "Success" in result.output
+        assert "Tag created. name: Test" in result.output
+
     def test_name_should_be_given(self):
         result = runner.invoke(app, ["tag", "add"])
 
@@ -64,17 +72,31 @@ class TestTagEdit:
             "jikan.commands.tag.edit_tag",
             return_value=Tag(name="Edited"),
         )
-        result = runner.invoke(app, ["tag", "edit", "--id", "1", "--name", "Edited"])
+        result = runner.invoke(app, ["tag", "edit", "1", "--name", "Edited"])
+
+        assert result.exit_code == 0
+        assert "Success" in result.output
+
+    def test_short_option(self, mocker: MockFixture):
+        mocker.patch(
+            "jikan.commands.tag.get_tag",
+            return_value=Tag(name="Test"),
+        )
+        mocker.patch(
+            "jikan.commands.tag.edit_tag",
+            return_value=Tag(name="Edited"),
+        )
+        result = runner.invoke(app, ["tag", "edit", "1", "-n", "Edited"])
 
         assert result.exit_code == 0
         assert "Success" in result.output
 
     def test_name_should_be_given(self):
-        result = runner.invoke(app, ["tag", "edit", "--id", "1", "--name"])
+        result = runner.invoke(app, ["tag", "edit", "1", "--name"])
         assert result.exit_code == 2
 
     def test_id_should_be_given(self):
-        result = runner.invoke(app, ["tag", "edit", "--id", "--name", "Edited"])
+        result = runner.invoke(app, ["tag", "edit", "--name", "Edited"])
         assert result.exit_code == 2
 
     def test_tag_not_found(self, mocker: MockFixture):
@@ -82,26 +104,28 @@ class TestTagEdit:
             "jikan.commands.tag.get_tag",
             side_effect=TagNotFoundError(),
         )
-        result = runner.invoke(app, ["tag", "edit", "--id", "1", "--name", "Edited"])
+        result = runner.invoke(app, ["tag", "edit", "1", "--name", "Edited"])
         assert result.exit_code == 1
         assert "Tag not found" in result.output
 
 
 class TestTagDelete:
     def test_success(self, mocker: MockFixture):
+        tag = Tag(name="Test")
         mocker.patch(
             "jikan.commands.tag.get_tag",
-            return_value=Tag(name="Test"),
+            return_value=tag,
         )
         mocker.patch("jikan.commands.tag.typer.confirm", return_value=True)
         mocker.patch("jikan.commands.tag.delete_tag", return_value=None)
-        result = runner.invoke(app, ["tag", "delete", "--id", "1"])
+        result = runner.invoke(app, ["tag", "delete", "1"])
 
         assert result.exit_code == 0
+        assert str(tag) in result.output
         assert "Success" in result.output
 
     def test_id_should_be_given(self):
-        result = runner.invoke(app, ["tag", "delete", "--id"])
+        result = runner.invoke(app, ["tag", "delete"])
 
         assert result.exit_code == 2
 
@@ -110,7 +134,7 @@ class TestTagDelete:
             "jikan.commands.tag.get_tag",
             side_effect=TagNotFoundError(),
         )
-        result = runner.invoke(app, ["tag", "delete", "--id", "1"])
+        result = runner.invoke(app, ["tag", "delete", "1"])
 
         assert result.exit_code == 1
         assert "Tag not found" in result.output
@@ -121,6 +145,6 @@ class TestTagDelete:
             return_value=Tag(name="Test"),
         )
         mocker.patch("jikan.commands.tag.typer.confirm", side_effect=Abort)
-        result = runner.invoke(app, ["tag", "delete", "--id", "1"])
+        result = runner.invoke(app, ["tag", "delete", "1"])
 
         assert result.exit_code == 1

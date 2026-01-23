@@ -1,6 +1,7 @@
 from typing import Annotated
 
 import typer
+from rich import print
 from rich.console import Console
 from rich.table import Table
 
@@ -23,7 +24,7 @@ def list():
 
 
 @app.command()
-def add(name: Annotated[str, typer.Option(help="Name of tag", default=...)]):
+def add(name: Annotated[str, typer.Option("--name", "-n", help="Name of tag")]):
     """Add new tag"""
     new_tag = add_tag(name)
     success(f"Tag created. name: {new_tag.name}")
@@ -31,8 +32,8 @@ def add(name: Annotated[str, typer.Option(help="Name of tag", default=...)]):
 
 @app.command()
 def edit(
-    id: Annotated[int, typer.Option(help="ID of tag to be edited", default=...)],
-    name: Annotated[str, typer.Option(help="Name of tag", default=...)],
+    id: Annotated[int, typer.Argument(help="ID of tag to be edited")],
+    name: Annotated[str, typer.Option("--name", "-n", help="Name of tag")],
 ):
     try:
         tag = get_tag(id)
@@ -47,10 +48,10 @@ def edit(
 
 
 @app.command()
-def delete(id: Annotated[int, typer.Option(help="ID of tag to be deleted", default=...)]):
+def delete(id: Annotated[int, typer.Argument(help="ID of tag to be deleted")]):
     try:
         tag = get_tag(id)
-        print(tag.model_dump())
+        print(str(tag))
         _ = typer.confirm("Are you sure you want to delete it?", abort=True)
         delete_tag(tag)
         success("Tag deleted.")
