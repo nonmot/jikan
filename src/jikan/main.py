@@ -40,7 +40,7 @@ app.add_typer(tag.app, name="tag")
 
 @app.command()
 def start(
-    id: Annotated[int, typer.Option(help="ID of associated project", default=...)],
+    id: Annotated[int | None, typer.Option(help="ID of associated project")] = None,
     title: Annotated[str, typer.Option("--title", "-t", help="Title of time entry")] = "",
     description: Annotated[
         str, typer.Option("--description", "-d", help="Description of time entry")

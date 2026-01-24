@@ -1,5 +1,4 @@
 from collections.abc import Generator
-from datetime import datetime
 
 import pytest
 from pytest_mock import MockerFixture
@@ -59,9 +58,7 @@ def seed_tags(use_test_engine: None) -> None:
 def seed_active_entry(use_test_engine: None) -> None:
     project = Project(id=1, name="active-1", description="a1", archived=False)
 
-    entry = Entry(
-        id=1, project_id=project.id, title="Entry 1", description="Entry 1", start_at=datetime.now()
-    )
+    entry = Entry(id=1, project_id=project.id, title="Entry 1", description="Entry 1")
 
     with Session(entry_core.engine) as session:
         session.add(project)
@@ -78,14 +75,12 @@ def seed_entries(use_test_engine: None) -> None:
             project_id=project.id,
             title="entry-1",
             description="entry 1",
-            start_at=datetime.now(),
         ),
         Entry(
             id=2,
             project_id=project.id,
             title="entry-2",
             description="entry 2",
-            start_at=datetime.now(),
         ),
     ]
 

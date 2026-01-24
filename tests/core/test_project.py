@@ -32,7 +32,7 @@ class TestProjectList:
 class TestProjectAdd:
     def test_add_one_project(self, seed_projects: None):
         projects_before = list_project()
-        add_project(name="active-2", description="")
+        add_project(name="active-3", description="")
         projects_after = list_project()
         assert len(projects_before) + 1 == len(projects_after)
 
