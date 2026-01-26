@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from sqlmodel import Session, col, select
 
+from jikan.core.project import get_project
 from jikan.lib.datetime import ensure_utc_aware, utc_now
 from jikan.models import Entry, engine
 
@@ -28,15 +29,37 @@ def get_entry(id: int) -> Entry:
         return entry
 
 
-def edit_entry(entry: Entry, title: str | None, description: str | None) -> Entry:
+def edit_entry(
+    entry: Entry,
+    title: str | None = None,
+    description: str | None = None,
+    start_at: datetime | None = None,
+    end_at: datetime | None = None,
+    project_id: int | None = None,
+) -> Entry:
     with Session(engine) as session:
         db_entry = session.get(Entry, entry.id)
         if db_entry is None:
             raise EntryNotFoundError
+
         if title is not None:
             db_entry.title = title
         if description is not None:
             db_entry.description = description
+
+        sa = db_entry.start_at if start_at is None else start_at
+        ea = db_entry.end_at if end_at is None else end_at
+        if ea is not None and sa > ea:
+            raise ValueError("Start time must be before or equal to end time.")
+
+        if start_at is not None:
+            db_entry.start_at = start_at
+        if end_at is not None:
+            db_entry.end_at = end_at
+
+        if project_id is not None:
+            project = get_project(project_id)
+            db_entry.project = project
 
         session.add(db_entry)
         session.commit()

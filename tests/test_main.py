@@ -9,6 +9,7 @@ from jikan.core.entry import (
     EntryNotRunningError,
     running_time,
 )
+from jikan.core.project import ProjectNotFoundError
 from jikan.lib.datetime import format_timedelta
 from jikan.main import app
 from jikan.models import Entry
@@ -208,7 +209,23 @@ class TestEdit:
             ),
         )
 
-        result = runner.invoke(app, ["edit", "1", "--title", "Edited", "--description", "Edited"])
+        result = runner.invoke(
+            app,
+            [
+                "edit",
+                "1",
+                "--title",
+                "Edited",
+                "--description",
+                "Edited",
+                "--start",
+                "1990/01/01 12:34:56",
+                "--end",
+                "2000/01/01 23:59:59",
+                "--project",
+                "1",
+            ],
+        )
 
         assert result.exit_code == 0
         assert "Entry edited" in result.output
@@ -251,6 +268,60 @@ class TestEdit:
         )
 
         result = runner.invoke(app, ["edit", "1", "--title", "Edited", "--description", "Edited"])
+        assert result.exit_code == 1
+
+    def test_start_invalid(self, mocker: MockFixture):
+        result = runner.invoke(
+            app,
+            [
+                "edit",
+                "1",
+                "--title",
+                "Edited",
+                "--description",
+                "Edited",
+                "--start",
+                "19901/01/01 12:34:56",
+            ],
+        )
+
+        assert result.exit_code == 1
+
+    def test_end_invalid(self, mocker: MockFixture):
+        result = runner.invoke(
+            app,
+            [
+                "edit",
+                "1",
+                "--title",
+                "Edited",
+                "--description",
+                "Edited",
+                "--end",
+                "19901/01/01 12:34:56",
+            ],
+        )
+
+        assert result.exit_code == 1
+
+    def test_project_not_found(self, mocker: MockFixture):
+        mocker.patch(
+            "jikan.main.get_entry",
+            return_value=Entry(
+                id=1, project_id=1, title="Entry", description="Entry", start_at=datetime.now()
+            ),
+        )
+        mocker.patch("jikan.main.edit_entry", side_effect=ProjectNotFoundError())
+        result = runner.invoke(
+            app,
+            [
+                "edit",
+                "1",
+                "--project",
+                "1000",
+            ],
+        )
+
         assert result.exit_code == 1
 
 

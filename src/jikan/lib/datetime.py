@@ -1,5 +1,7 @@
 import datetime as _datetime
 
+import typer
+
 
 def utc_now() -> _datetime.datetime:
     return _datetime.datetime.now(_datetime.UTC)
@@ -23,3 +25,12 @@ def format_timedelta(d: _datetime.timedelta) -> str:
     minutes = remain // 60
     seconds = remain - (minutes * 60)
     return f"{int(hours):02}h {int(minutes):02}m {int(seconds):02}s"
+
+
+def parse_dt(value: str) -> _datetime.datetime:
+    fmt = "%Y/%m/%d %H:%M:%S"
+    try:
+        parse_dt = _datetime.datetime.strptime(value, fmt)
+        return ensure_utc_aware(parse_dt)
+    except ValueError as e:
+        raise typer.BadParameter("Invalid datetime. Use format like YYYY/MM/DD HH:MM:SS") from e
