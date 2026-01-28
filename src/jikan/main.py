@@ -20,7 +20,8 @@ from jikan.core.entry import (
     start_time_entry,
     stop_time_entry,
 )
-from jikan.lib.datetime import format_datetime, format_timedelta
+from jikan.core.project import ProjectNotFoundError
+from jikan.lib.datetime import format_datetime, format_timedelta, parse_dt
 from jikan.lib.print import error, success, warn
 from jikan.models import create_db_and_tables
 
@@ -95,7 +96,9 @@ def status():
 @app.command()
 def list():
     time_entries = list_time_entry()
-    table = Table("ID", "Title", "Description", "Start at", "End at", "Created at", "Updated at")
+    table = Table(
+        "ID", "Title", "Description", "Start at", "End at", "Created at", "Updated at", "Project"
+    )
     for entry in time_entries:
         table.add_row(
             str(entry.id),
@@ -105,6 +108,7 @@ def list():
             format_datetime(entry.end_at) if entry.end_at is not None else "None",
             format_datetime(entry.created_at),
             format_datetime(entry.updated_at),
+            str(entry.project_id),
         )
     console.print(table)
 
@@ -116,17 +120,39 @@ def edit(
     description: Annotated[
         str | None, typer.Option("--description", "-d", help="Description of time entry")
     ] = None,
+    start: Annotated[str | None, typer.Option(help="Start time of time entry")] = None,
+    end: Annotated[str | None, typer.Option(help="End time of time entry")] = None,
+    project: Annotated[int | None, typer.Option(help="ID of associated project")] = None,
 ):
-    if title is None and description is None:
-        error("Either title or description must be specified")
+    if title is None and description is None and start is None and end is None and project is None:
+        error("Either title, description, start, end or project must be specified")
         raise typer.Exit(code=1) from None
+
+    start_at = None
+    if start is not None:
+        try:
+            start_at = parse_dt(start)
+        except typer.BadParameter as e:
+            error(f"Invalid --start value: {e}")
+            raise typer.Exit(code=1) from e
+
+    end_at = None
+    if end is not None:
+        try:
+            end_at = parse_dt(end)
+        except typer.BadParameter as e:
+            error(f"Invalid --end value: {e}")
+            raise typer.Exit(code=1) from e
 
     try:
         entry = get_entry(id)
-        edit_entry(entry, title, description)
+        edit_entry(entry, title, description, start_at, end_at, project)
         success("Entry edited")
     except EntryNotFoundError as e:
         error("Entry not found")
+        raise typer.Exit(code=1) from e
+    except ProjectNotFoundError as e:
+        error("Project not found")
         raise typer.Exit(code=1) from e
     except Exception as e:
         error(f"Failed to edit entry: {e}")
