@@ -324,6 +324,80 @@ class TestEdit:
 
         assert result.exit_code == 1
 
+    def test_add_tag(self, mocker: MockFixture):
+        mocker.patch(
+            "jikan.main.get_entry",
+            return_value=Entry(
+                id=1, project_id=1, title="Entry", description="Entry", start_at=datetime.now()
+            ),
+        )
+        mocker.patch(
+            "jikan.main.edit_entry",
+            return_value=Entry(
+                id=1, project_id=1, title="Edited", description="Edited", start_at=datetime.now()
+            ),
+        )
+
+        result = runner.invoke(
+            app,
+            ["edit", "1", "--add-tag", "1"],
+        )
+
+        assert result.exit_code == 0
+
+    def test_remove_tag(self, mocker: MockFixture):
+        mocker.patch(
+            "jikan.main.get_entry",
+            return_value=Entry(
+                id=1, project_id=1, title="Entry", description="Entry", start_at=datetime.now()
+            ),
+        )
+        mocker.patch(
+            "jikan.main.edit_entry",
+            return_value=Entry(
+                id=1, project_id=1, title="Edited", description="Edited", start_at=datetime.now()
+            ),
+        )
+
+        result = runner.invoke(
+            app,
+            ["edit", "1", "--remove-tag", "1"],
+        )
+
+        assert result.exit_code == 0
+
+    def test_add_and_remove_tags_multiple(self, mocker: MockFixture):
+        mocker.patch(
+            "jikan.main.get_entry",
+            return_value=Entry(
+                id=1, project_id=1, title="Entry", description="Entry", start_at=datetime.now()
+            ),
+        )
+        mocker.patch(
+            "jikan.main.edit_entry",
+            return_value=Entry(
+                id=1, project_id=1, title="Edited", description="Edited", start_at=datetime.now()
+            ),
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "edit",
+                "1",
+                "--add-tag",
+                "1",
+                "--add-tag",
+                "2",
+                "--remove-tag",
+                "1",
+                "--remove-tag",
+                "2",
+            ],
+        )
+
+        assert result.exit_code == 0
+
 
 class TestDelete:
     def test_success(self, mocker: MockFixture):

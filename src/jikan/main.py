@@ -93,8 +93,8 @@ def status():
     print(f"Time entry running: {format_timedelta(running_time(running_entry[0]))}")
 
 
-@app.command()
-def list():
+@app.command("list")
+def list_cmd():
     time_entries = list_time_entry()
     table = Table(
         "ID", "Title", "Description", "Start at", "End at", "Created at", "Updated at", "Project"
@@ -123,9 +123,21 @@ def edit(
     start: Annotated[str | None, typer.Option(help="Start time of time entry")] = None,
     end: Annotated[str | None, typer.Option(help="End time of time entry")] = None,
     project: Annotated[int | None, typer.Option(help="ID of associated project")] = None,
+    add_tag: Annotated[list[int] | None, typer.Option(help="Add tags")] = None,
+    remove_tag: Annotated[list[int] | None, typer.Option(help="Remove tags")] = None,
 ):
-    if title is None and description is None and start is None and end is None and project is None:
-        error("Either title, description, start, end or project must be specified")
+    if (
+        title is None
+        and description is None
+        and start is None
+        and end is None
+        and project is None
+        and add_tag is None
+        and remove_tag is None
+    ):
+        error(
+            "Either title, description, start, end, project,add_tag or remove_tag must be specified"
+        )
         raise typer.Exit(code=1) from None
 
     start_at = None
@@ -146,7 +158,7 @@ def edit(
 
     try:
         entry = get_entry(id)
-        edit_entry(entry, title, description, start_at, end_at, project)
+        edit_entry(entry, title, description, start_at, end_at, project, add_tag, remove_tag)
         success("Entry edited")
     except EntryNotFoundError as e:
         error("Entry not found")
