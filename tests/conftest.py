@@ -69,13 +69,12 @@ def seed_active_entry(use_test_engine: None) -> None:
 @pytest.fixture()
 def seed_entries(use_test_engine: None) -> None:
     project = Project(id=1, name="project-1")
+    tags = [
+        Tag(id=1, name="tag-1"),
+        Tag(id=2, name="tag-2"),
+    ]
     entries = [
-        Entry(
-            id=1,
-            project_id=project.id,
-            title="entry-1",
-            description="entry 1",
-        ),
+        Entry(id=1, project_id=project.id, title="entry-1", description="entry 1", tags=[tags[0]]),
         Entry(
             id=2,
             project_id=project.id,
@@ -84,7 +83,8 @@ def seed_entries(use_test_engine: None) -> None:
         ),
     ]
 
-    with Session(tag_core.engine) as session:
+    with Session(entry_core.engine) as session:
         session.add(project)
+        session.add_all(tags)
         session.add_all(entries)
         session.commit()

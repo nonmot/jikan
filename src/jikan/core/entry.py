@@ -1,11 +1,14 @@
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, col, select
 
 from jikan.core.project import get_project
+from jikan.core.tag import TagNotFoundError
 from jikan.lib.datetime import ensure_utc_aware, utc_now
-from jikan.models import Entry, engine
+from jikan.lib.print import warn
+from jikan.models import Entry, Tag, engine
 
 
 class EntryAlreadyRunningError(Exception):
@@ -22,7 +25,7 @@ class EntryNotFoundError(Exception):
 
 def get_entry(id: int) -> Entry:
     with Session(engine) as session:
-        statement = select(Entry).where(Entry.id == id)
+        statement = select(Entry).options(selectinload(Entry.tags)).where(Entry.id == id)  # pyright: ignore[reportArgumentType]
         entry = session.exec(statement).one_or_none()
         if entry is None:
             raise EntryNotFoundError
@@ -36,6 +39,8 @@ def edit_entry(
     start_at: datetime | None = None,
     end_at: datetime | None = None,
     project_id: int | None = None,
+    add_tags_id: list[int] | None = None,
+    remove_tags_id: list[int] | None = None,
 ) -> Entry:
     with Session(engine) as session:
         db_entry = session.get(Entry, entry.id)
@@ -60,6 +65,38 @@ def edit_entry(
         if project_id is not None:
             project = get_project(project_id)
             db_entry.project = project
+
+        if add_tags_id:
+            requested_ids = set(add_tags_id)
+            existing_ids = {t.id for t in db_entry.tags}
+
+            duplicated_ids = requested_ids & existing_ids
+            if duplicated_ids:
+                warn(f"Tag already added. ID={sorted(duplicated_ids)}")
+
+            target_ids = requested_ids - existing_ids
+
+            if target_ids:
+                tags = session.exec(select(Tag).where(Tag.id.in_(target_ids))).all()
+
+                found_ids = {t.id for t in tags}
+
+                missing = target_ids - found_ids
+                if missing:
+                    raise TagNotFoundError(f"Tag not found. ID={sorted(missing)}")
+                db_entry.tags.extend(tags)
+
+        if remove_tags_id:
+            requested_ids = set(remove_tags_id)
+            existing_ids = {t.id for t in db_entry.tags}
+            not_attached = requested_ids - existing_ids
+
+            if not_attached:
+                warn(f"Tag not attached. ID={sorted(not_attached)}")
+
+            target_ids = requested_ids & existing_ids
+            if target_ids:
+                db_entry.tags = [t for t in db_entry.tags if t.id not in target_ids]
 
         session.add(db_entry)
         session.commit()

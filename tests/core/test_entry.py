@@ -16,6 +16,7 @@ from jikan.core.entry import (
     stop_time_entry,
 )
 from jikan.core.project import ProjectNotFoundError
+from jikan.core.tag import TagNotFoundError
 from jikan.lib.datetime import utc_now
 from jikan.models import Entry, Project
 
@@ -42,6 +43,50 @@ class TestEditEntry:
         assert entry.start_at == now
         assert entry.end_at == now
         assert entry.project_id == 1
+
+    def test_add_tags_success(self, seed_entries: None):
+        entry = get_entry(2)
+        edit_entry(entry, add_tags_id=[1, 2])
+        entry = get_entry(2)
+
+        tags_id = {t.id for t in entry.tags}
+
+        assert tags_id == {1, 2}
+
+    def test_added_tag_already_belong(self, seed_entries: None):
+        entry = get_entry(1)
+        tags_id_before = {t.id for t in entry.tags}
+        edit_entry(entry, add_tags_id=[1, 2])
+        entry = get_entry(1)
+
+        tags_id_after = {t.id for t in entry.tags}
+
+        assert tags_id_after == {1, 2}
+        assert len(tags_id_before) + 1 == len(tags_id_after)
+
+    def test_added_tag_not_exist(self, seed_entries: None):
+        entry = get_entry(1)
+        with pytest.raises(TagNotFoundError):
+            edit_entry(entry, add_tags_id=[1, 1000])
+
+    def test_remove_tags_success(self, seed_entries: None):
+        entry = get_entry(1)
+        edit_entry(entry, remove_tags_id=[1])
+        entry = get_entry(1)
+
+        tags_id = {t.id for t in entry.tags}
+
+        assert len(tags_id) == 0
+
+    def test_remove_tag_not_exist(self, seed_entries: None):
+        entry = get_entry(1)
+        tags_id_before = {t.id for t in entry.tags}
+        edit_entry(entry, remove_tags_id=[1000])
+        entry = get_entry(1)
+
+        tags_id_after = {t.id for t in entry.tags}
+
+        assert tags_id_before == tags_id_after
 
     def test_options_are_none(self, seed_entries: None):
         entry_before = get_entry(1)
