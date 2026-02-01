@@ -87,10 +87,15 @@ def status():
         error("Multiple time entries running")
         raise typer.Exit(code=1)
 
-    print(f"ID: {running_entry[0].id}")
-    print(f"Title: {running_entry[0].title}")
-    print(f"Description: {running_entry[0].description}")
-    print(f"Time entry running: {format_timedelta(running_time(running_entry[0]))}")
+    print(f"[bold]ID[/bold]: {running_entry[0].id}")
+    print(f"[bold]Title[/bold]: {running_entry[0].title}")
+    print(f"[bold]Description[/bold]: {running_entry[0].description}")
+    print(f"[bold]Time entry running[/bold]: {format_timedelta(running_time(running_entry[0]))}")
+    print(
+        f"[bold]Project[/bold]: "
+        f"{running_entry[0].project.name if running_entry[0].project is not None else ''}"
+    )
+    print("[bold]Tags[/bold]: ", ", ".join(t.name for t in running_entry[0].tags), sep="")
 
 
 @app.command("list")

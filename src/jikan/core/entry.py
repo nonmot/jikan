@@ -27,9 +27,9 @@ def get_entry(id: int) -> Entry:
     with Session(engine) as session:
         statement = (
             select(Entry)
-            .options(selectinload(Entry.tags), selectinload(Entry.project))
+            .options(selectinload(Entry.tags), selectinload(Entry.project))  # pyright: ignore[reportArgumentType]
             .where(Entry.id == id)
-        )  # pyright: ignore[reportArgumentType]
+        )
         entry = session.exec(statement).one_or_none()
         if entry is None:
             raise EntryNotFoundError
@@ -163,7 +163,11 @@ def stop_time_entry() -> Entry:
 
 def get_running_entry() -> Sequence[Entry]:
     with Session(engine) as session:
-        statement = select(Entry).where(col(Entry.end_at).is_(None))
+        statement = (
+            select(Entry)
+            .options(selectinload(Entry.project), selectinload(Entry.tags))  # pyright: ignore[reportArgumentType]
+            .where(col(Entry.end_at).is_(None))
+        )
         entries = session.exec(statement).all()
         return entries
 
