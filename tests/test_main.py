@@ -136,8 +136,10 @@ class TestStatus:
         result = runner.invoke(app, ["status"])
 
         assert result.exit_code == 0
-        assert entries[0].title in result.output
-        assert format_timedelta(running_time(entries[0])) in result.output
+        assert f"ID: {entries[0].id}" in result.output
+        assert f"Title: {entries[0].title}" in result.output
+        assert f"Description: {entries[0].description}" in result.output
+        assert f"Time entry running: {format_timedelta(running_time(entries[0]))}" in result.output
 
     def test_no_entry_running(self, mocker: MockFixture):
         entries = []
