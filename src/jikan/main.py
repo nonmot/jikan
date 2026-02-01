@@ -190,6 +190,30 @@ def delete(id: Annotated[int, typer.Argument(help="ID of entry to be deleted")])
 
 
 @app.command()
+def view(id: Annotated[int, typer.Argument(help="ID of entry to be viewed")]):
+    try:
+        entry = get_entry(id)
+
+        print(f"[bold]ID[/bold]: {entry.id}")
+        print(f"[bold]Title[/bold]: {entry.title}")
+        print(f"[bold]Description[/bold]: {entry.description}")
+        print(
+            f"[bold]Duration[/bold]: "
+            f"{format_timedelta(entry.end_at - entry.start_at) if entry.end_at is not None else ''}"
+        )
+        print(f"[bold]Start at[/bold]: {format_datetime(entry.start_at)}")
+        print(
+            f"[bold]End at[/bold]: "
+            f"{format_datetime(entry.end_at) if entry.end_at is not None else 'Still runnuing'}"
+        )
+        print(f"[bold]Project[/bold]: {entry.project.name if entry.project is not None else ''}")
+        print("[bold]Tags[/bold]: ", ", ".join(tag.name for tag in entry.tags), sep="")
+    except EntryNotFoundError as e:
+        error("Entry not found")
+        raise typer.Exit(code=1) from e
+
+
+@app.command()
 def report():
     warn("Not implemented.")
 

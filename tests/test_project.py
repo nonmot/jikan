@@ -272,3 +272,29 @@ class TestProjectUnarchive:
         result = runner.invoke(app, ["project", "unarchive"])
 
         assert result.exit_code == 2
+
+
+class TestProjectView:
+    def test_success(self, mocker: MockFixture):
+        project = Project(name="Test", description="This is a test project", archived=False)
+        mocker = mocker.patch("jikan.commands.project.get_project", return_value=project)
+
+        result = runner.invoke(app, ["project", "view", "1"])
+
+        assert result.exit_code == 0
+        mocker.assert_called_once_with(1)
+        assert f"ID: {project.id}" in result.output
+        assert f"Name: {project.name}" in result.output
+        assert f"Description: {project.description}" in result.output
+        assert f"Archived: {project.archived}" in result.output
+
+    def test_project_not_found(self, mocker: MockFixture):
+        mocker = mocker.patch(
+            "jikan.commands.project.get_project",
+            side_effect=ProjectNotFoundError(),
+        )
+
+        result = runner.invoke(app, ["project", "view", "1000"])
+
+        mocker.assert_called_once_with(1000)
+        assert result.exit_code == 1

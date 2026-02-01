@@ -25,7 +25,11 @@ class EntryNotFoundError(Exception):
 
 def get_entry(id: int) -> Entry:
     with Session(engine) as session:
-        statement = select(Entry).options(selectinload(Entry.tags)).where(Entry.id == id)  # pyright: ignore[reportArgumentType]
+        statement = (
+            select(Entry)
+            .options(selectinload(Entry.tags), selectinload(Entry.project))
+            .where(Entry.id == id)
+        )  # pyright: ignore[reportArgumentType]
         entry = session.exec(statement).one_or_none()
         if entry is None:
             raise EntryNotFoundError
