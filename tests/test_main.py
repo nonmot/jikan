@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from pytest_mock import MockFixture
 from typer.testing import CliRunner
@@ -10,9 +10,9 @@ from jikan.core.entry import (
     running_time,
 )
 from jikan.core.project import ProjectNotFoundError
-from jikan.lib.datetime import format_timedelta
+from jikan.lib.datetime import format_datetime, format_timedelta
 from jikan.main import app
-from jikan.models import Entry
+from jikan.models import Entry, Project, Tag
 
 runner = CliRunner()
 
@@ -438,3 +438,42 @@ class TestDelete:
 
         result = runner.invoke(app, ["delete", "1"])
         assert result.exit_code == 1
+
+
+class TestView:
+    def test_success(self, mocker: MockFixture):
+        now = datetime.now()
+        project = Project(name="Test Project")
+        tag1 = Tag(name="Tag1")
+        tag2 = Tag(name="Tag2")
+        entry = Entry(
+            id=1,
+            title="Test entry",
+            description="This is a test entry",
+            start_at=now,
+            end_at=now + timedelta(seconds=100),
+            project=project,
+            tags=[tag1, tag2],
+        )
+        get_mock = mocker.patch("jikan.main.get_entry", return_value=entry)
+
+        result = runner.invoke(app, ["view", "1"])
+
+        assert result.exit_code == 0
+        get_mock.assert_called_once_with(1)
+        assert "ID: 1" in result.output
+        assert "Title: Test entry" in result.output
+        assert "Description: This is a test entry" in result.output
+        assert "Duration: 00h 01m 40s" in result.output
+        assert f"Start at: {format_datetime(now)}" in result.output
+        assert f"End at: {format_datetime(now + timedelta(seconds=100))}" in result.output
+        assert f"Project: {project.name}" in result.output
+        assert "Tags: Tag1, Tag2" in result.output
+
+    def test_entry_not_found(self, mocker: MockFixture):
+        get_mock = mocker.patch("jikan.main.get_entry", side_effect=EntryNotFoundError())
+
+        result = runner.invoke(app, ["view", "1000"])
+
+        assert result.exit_code == 1
+        get_mock.assert_called_once_with(1000)

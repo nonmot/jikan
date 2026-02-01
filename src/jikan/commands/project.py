@@ -112,3 +112,16 @@ def unarchive(id: Annotated[int, typer.Argument(help="ID of project to be unarch
         raise typer.Exit(code=1) from e
     except Exception as e:
         raise typer.Exit(code=1) from e
+
+
+@app.command()
+def view(id: Annotated[int, typer.Argument(help="ID of project to be viewed")]):
+    try:
+        project = get_project(id)
+        print(f"[bold]ID[/bold]: {project.id}")
+        print(f"[bold]Name[/bold]: {project.name}")
+        print(f"[bold]Description[/bold]: {project.description}")
+        print(f"[bold]Archived[/bold]: {project.archived}")
+    except ProjectNotFoundError as e:
+        error("Project not found")
+        raise typer.Exit(code=1) from e
