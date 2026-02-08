@@ -181,6 +181,6 @@ def list_time_entry() -> Sequence[Entry]:
 
 
 def running_time(entry: Entry) -> timedelta:
-    now = datetime.now()
-    elasped_time = now - entry.start_at
-    return elasped_time
+    now = utc_now()
+    elapsed_time = now - ensure_utc_aware(entry.start_at)
+    return elapsed_time

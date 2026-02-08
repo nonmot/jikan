@@ -6,7 +6,7 @@ from pytest_mock import MockerFixture
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
-from jikan.db import reset_session_factory, session_context, set_session_context_factory
+from jikan.db import reset_session_context_factory, session_context, set_session_context_factory
 from jikan.models import Entry, Project, Tag
 
 
@@ -26,7 +26,7 @@ def use_test_engine(mocker: MockerFixture) -> Generator[None, None, None]:
     try:
         yield
     finally:
-        reset_session_factory()
+        reset_session_context_factory()
         SQLModel.metadata.drop_all(test_engine)
 
 

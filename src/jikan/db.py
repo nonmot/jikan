@@ -37,52 +37,52 @@ def set_session_context_factory(factory: SessionContextFactory) -> None:
     _session_context_factory = factory
 
 
-def reset_session_factory() -> None:
+def reset_session_context_factory() -> None:
     global _session_context_factory
     _session_context_factory = _default_session_context
 
 
 def create_db_and_tables() -> None:
+    SQLModel.metadata.create_all(engine)
+
     inspector = inspect(engine)
     if inspector.has_table("project"):
         print("Table project exist.")
         return
-    else:
-        SQLModel.metadata.create_all(engine)
 
-        project = Project(
-            name="Learn about jikan",
-            description="Learn about jikan to manage your time effectively!",
-            archived=False,
-        )
-        with Session(engine) as session:
-            session.add(project)
-            session.commit()
-            session.refresh(project)
+    project = Project(
+        name="Learn about jikan",
+        description="Learn about jikan to manage your time effectively!",
+        archived=False,
+    )
+    with Session(engine) as session:
+        session.add(project)
+        session.commit()
+        session.refresh(project)
 
-        tag1 = Tag(name="Read docs")
-        tag2 = Tag(name="Use jikan")
-        with Session(engine) as session:
-            session.add(tag1)
-            session.add(tag2)
-            session.commit()
-            session.refresh(tag1)
-            session.refresh(tag2)
+    tag1 = Tag(name="Read docs")
+    tag2 = Tag(name="Use jikan")
+    with Session(engine) as session:
+        session.add(tag1)
+        session.add(tag2)
+        session.commit()
+        session.refresh(tag1)
+        session.refresh(tag2)
 
-        assert project.id is not None
-        entry = Entry(
-            title="Install jikan and give it a try",
-            description="Dive in jikan to explore what it's all about!",
-            project=project,
-            tags=[tag1, tag2],
-        )
-        inbox_entry = Entry(
-            title="Inbox",
-            tags=[tag1, tag2],
-        )
-        entry.end_at = utc_now() + timedelta(seconds=10)
-        inbox_entry.end_at = utc_now() + timedelta(seconds=10)
-        with Session(engine) as session:
-            session.add(entry)
-            session.add(inbox_entry)
-            session.commit()
+    assert project.id is not None
+    entry = Entry(
+        title="Install jikan and give it a try",
+        description="Dive in jikan to explore what it's all about!",
+        project=project,
+        tags=[tag1, tag2],
+    )
+    inbox_entry = Entry(
+        title="Inbox",
+        tags=[tag1, tag2],
+    )
+    entry.end_at = utc_now() + timedelta(seconds=10)
+    inbox_entry.end_at = utc_now() + timedelta(seconds=10)
+    with Session(engine) as session:
+        session.add(entry)
+        session.add(inbox_entry)
+        session.commit()
