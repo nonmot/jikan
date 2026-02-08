@@ -1,8 +1,9 @@
 from collections.abc import Sequence
 
-from sqlmodel import Session, select
+from sqlmodel import select
 
-from jikan.models import Tag, engine
+from jikan.db import session_context
+from jikan.models import Tag
 
 
 class TagNotFoundError(Exception):
@@ -10,14 +11,14 @@ class TagNotFoundError(Exception):
 
 
 def list_tag() -> Sequence[Tag]:
-    with Session(engine) as session:
+    with session_context() as session:
         statement = select(Tag)
         tags = session.exec(statement).all()
         return tags
 
 
 def get_tag(id: int) -> Tag:
-    with Session(engine) as session:
+    with session_context() as session:
         statement = select(Tag).where(Tag.id == id)
         tag = session.exec(statement).one_or_none()
         if tag is None:
@@ -28,7 +29,7 @@ def get_tag(id: int) -> Tag:
 def add_tag(name: str) -> Tag:
     if not name:
         raise ValueError("name should not be empty")
-    with Session(engine) as session:
+    with session_context() as session:
         tag = Tag(name=name)
         session.add(tag)
         session.commit()
@@ -39,7 +40,7 @@ def add_tag(name: str) -> Tag:
 def edit_tag(tag: Tag, name: str) -> Tag:
     if not name:
         raise ValueError("name should not be empty")
-    with Session(engine) as session:
+    with session_context() as session:
         db_tag = session.get(Tag, tag.id)
         if db_tag is None:
             raise TagNotFoundError
@@ -51,7 +52,7 @@ def edit_tag(tag: Tag, name: str) -> Tag:
 
 
 def delete_tag(tag: Tag) -> None:
-    with Session(engine) as session:
+    with session_context() as session:
         db_tag = session.get(Tag, tag.id)
         if db_tag is None:
             raise TagNotFoundError

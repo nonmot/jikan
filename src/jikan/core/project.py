@@ -1,8 +1,9 @@
 from collections.abc import Sequence
 
-from sqlmodel import Session, select
+from sqlmodel import select
 
-from jikan.models import Project, engine
+from jikan.db import session_context
+from jikan.models import Project
 
 
 class ProjectNotFoundError(Exception):
@@ -10,7 +11,7 @@ class ProjectNotFoundError(Exception):
 
 
 def list_project() -> Sequence[Project]:
-    with Session(engine) as session:
+    with session_context() as session:
         statement = select(Project).where(Project.archived == False)  # noqa E712
         projects = session.exec(statement).all()
         return projects
@@ -20,7 +21,7 @@ def add_project(name: str, description: str) -> Project:
     if not name:
         raise ValueError("name should not be empty")
     new_project = Project(name=name, description=description)
-    with Session(engine) as session:
+    with session_context() as session:
         session.add(new_project)
         session.commit()
         session.refresh(new_project)
@@ -28,7 +29,7 @@ def add_project(name: str, description: str) -> Project:
 
 
 def get_project(id: int) -> Project:
-    with Session(engine) as session:
+    with session_context() as session:
         statement = select(Project).where(Project.id == id)
         project = session.exec(statement).one_or_none()
         if project is None:
@@ -37,7 +38,7 @@ def get_project(id: int) -> Project:
 
 
 def delete_project(project: Project) -> None:
-    with Session(engine) as session:
+    with session_context() as session:
         db_project = session.get(Project, project.id)
         if db_project is None:
             raise ProjectNotFoundError
@@ -46,7 +47,7 @@ def delete_project(project: Project) -> None:
 
 
 def edit_project(project: Project, name: str | None, description: str | None) -> Project:
-    with Session(engine) as session:
+    with session_context() as session:
         db_project = session.get(Project, project.id)
         if db_project is None:
             raise ProjectNotFoundError
@@ -61,7 +62,7 @@ def edit_project(project: Project, name: str | None, description: str | None) ->
 
 
 def set_project_archived(project: Project, is_archived: bool) -> Project:
-    with Session(engine) as session:
+    with session_context() as session:
         db_project = session.get(Project, project.id)
         if db_project is None:
             raise ProjectNotFoundError

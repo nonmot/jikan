@@ -1,32 +1,33 @@
 from collections.abc import Generator
+from contextlib import contextmanager
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
-import jikan.core.entry as entry_core
-import jikan.core.project as project_core
-import jikan.core.tag as tag_core
+from jikan.db import reset_session_factory, session_context, set_session_context_factory
 from jikan.models import Entry, Project, Tag
 
 
 @pytest.fixture()
-def test_engine() -> Generator[Engine, None, None]:
-    engine = create_engine(
+def use_test_engine(mocker: MockerFixture) -> Generator[None, None, None]:
+    test_engine = create_engine(
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
-    SQLModel.metadata.create_all(engine)
-    yield engine
-    SQLModel.metadata.drop_all(engine)
+    SQLModel.metadata.create_all(test_engine)
 
+    @contextmanager
+    def _test_session_context():
+        with Session(test_engine) as session:
+            yield session
 
-@pytest.fixture()
-def use_test_engine(mocker: MockerFixture, test_engine: Engine) -> None:
-    core_modules = (project_core, tag_core, entry_core)
-    for module in core_modules:
-        mocker.patch.object(module, "engine", test_engine)
+    set_session_context_factory(_test_session_context)
+    try:
+        yield
+    finally:
+        reset_session_factory()
+        SQLModel.metadata.drop_all(test_engine)
 
 
 @pytest.fixture()
@@ -37,7 +38,7 @@ def seed_projects(use_test_engine: None) -> None:
         Project(id=3, name="archived-1", description="x1", archived=True),
     ]
 
-    with Session(project_core.engine) as session:
+    with session_context() as session:
         session.add_all(projects)
         session.commit()
 
@@ -49,7 +50,7 @@ def seed_tags(use_test_engine: None) -> None:
         Tag(id=2, name="tag-2"),
     ]
 
-    with Session(tag_core.engine) as session:
+    with session_context() as session:
         session.add_all(tags)
         session.commit()
 
@@ -60,7 +61,7 @@ def seed_active_entry(use_test_engine: None) -> None:
 
     entry = Entry(id=1, project_id=project.id, title="Entry 1", description="Entry 1")
 
-    with Session(entry_core.engine) as session:
+    with session_context() as session:
         session.add(project)
         session.add(entry)
         session.commit()
@@ -83,7 +84,7 @@ def seed_entries(use_test_engine: None) -> None:
         ),
     ]
 
-    with Session(entry_core.engine) as session:
+    with session_context() as session:
         session.add(project)
         session.add_all(tags)
         session.add_all(entries)
