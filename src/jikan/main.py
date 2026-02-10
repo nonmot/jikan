@@ -21,9 +21,9 @@ from jikan.core.entry import (
     stop_time_entry,
 )
 from jikan.core.project import ProjectNotFoundError
+from jikan.db import create_db_and_tables
 from jikan.lib.datetime import format_datetime, format_timedelta, parse_dt
 from jikan.lib.print import error, success, warn
-from jikan.models import create_db_and_tables
 
 console = Console()
 

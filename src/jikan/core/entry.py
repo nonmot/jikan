@@ -2,13 +2,14 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import selectinload
-from sqlmodel import Session, col, select
+from sqlmodel import col, select
 
 from jikan.core.project import get_project
 from jikan.core.tag import TagNotFoundError
+from jikan.db import session_context
 from jikan.lib.datetime import ensure_utc_aware, utc_now
 from jikan.lib.print import warn
-from jikan.models import Entry, Tag, engine
+from jikan.models import Entry, Tag
 
 
 class EntryAlreadyRunningError(Exception):
@@ -24,7 +25,7 @@ class EntryNotFoundError(Exception):
 
 
 def get_entry(id: int) -> Entry:
-    with Session(engine) as session:
+    with session_context() as session:
         statement = (
             select(Entry)
             .options(selectinload(Entry.tags), selectinload(Entry.project))  # pyright: ignore[reportArgumentType]
@@ -46,7 +47,7 @@ def edit_entry(
     add_tags_id: list[int] | None = None,
     remove_tags_id: list[int] | None = None,
 ) -> Entry:
-    with Session(engine) as session:
+    with session_context() as session:
         db_entry = session.get(Entry, entry.id)
         if db_entry is None:
             raise EntryNotFoundError
@@ -109,7 +110,7 @@ def edit_entry(
 
 
 def delete_entry(entry: Entry) -> None:
-    with Session(engine) as session:
+    with session_context() as session:
         db_entry = session.get(Entry, entry.id)
         if db_entry is None:
             raise EntryNotFoundError
@@ -127,7 +128,7 @@ def start_time_entry(project_id: int | None, title: str, description: str) -> En
         title=title,
         description=description,
     )
-    with Session(engine) as session:
+    with session_context() as session:
         session.add(new_entry)
         session.commit()
         session.refresh(new_entry)
@@ -151,7 +152,7 @@ def stop_time_entry() -> Entry:
             "Cannot stop: start time is in the future. Edit start_at to be <= now and retry."
         )
 
-    with Session(engine) as session:
+    with session_context() as session:
         entry.end_at = now
         entry.updated_at = now
         session.add(entry)
@@ -162,7 +163,7 @@ def stop_time_entry() -> Entry:
 
 
 def get_running_entry() -> Sequence[Entry]:
-    with Session(engine) as session:
+    with session_context() as session:
         statement = (
             select(Entry)
             .options(selectinload(Entry.project), selectinload(Entry.tags))  # pyright: ignore[reportArgumentType]
@@ -173,13 +174,13 @@ def get_running_entry() -> Sequence[Entry]:
 
 
 def list_time_entry() -> Sequence[Entry]:
-    with Session(engine) as session:
+    with session_context() as session:
         statement = select(Entry)
         time_entries = session.exec(statement).all()
         return time_entries
 
 
 def running_time(entry: Entry) -> timedelta:
-    now = datetime.now()
-    elasped_time = now - entry.start_at
-    return elasped_time
+    now = utc_now()
+    elapsed_time = now - ensure_utc_aware(entry.start_at)
+    return elapsed_time
