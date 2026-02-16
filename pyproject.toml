@@ -1,7 +1,7 @@
 [project]
 name = "jikan"
 version = "0.1.0"
-description = "Add your description here"
+description = "Jikan brings effortless time management right to your CLI."
 readme = "README.md"
 authors = [
     { name = "nonmot", email = "nonmot0614@gmail.com" }
