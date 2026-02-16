@@ -10,7 +10,7 @@ from jikan.core.entry import (
     running_time,
 )
 from jikan.core.project import ProjectNotFoundError
-from jikan.lib.datetime import format_datetime, format_timedelta
+from jikan.lib.datetime import convert_timezone, format_datetime, format_timedelta, utc_now
 from jikan.main import app
 from jikan.models import Entry, Project, Tag
 
@@ -26,16 +26,22 @@ def test_app():
 
 class TestStart:
     def test_success(self, mocker: MockFixture):
+        now = utc_now()
         mocker.patch(
             "jikan.main.start_time_entry",
             return_value=Entry(
-                id=1, title="Test", description="", project_id=1, start_at=datetime.now()
+                id=1,
+                title="Test",
+                description="",
+                project_id=1,
+                start_at=now,
             ),
         )
         result = runner.invoke(app, ["start", "--id", "1"])
 
         assert result.exit_code == 0
         assert "Success" in result.output
+        assert format_datetime(convert_timezone(now)) in result.output
 
     def test_with_options(self, mocker: MockFixture):
         mocker.patch(
@@ -93,15 +99,22 @@ class TestStart:
 
 class TestStop:
     def test_with_entry(self, mocker: MockFixture):
+        now = utc_now()
         mocker.patch(
             "jikan.main.stop_time_entry",
             return_value=Entry(
-                id=1, title="Test", description="", project_id=1, start_at=datetime.now()
+                id=1,
+                title="Test",
+                description="",
+                project_id=1,
+                start_at=now - timedelta(seconds=10),
+                end_at=now,
             ),
         )
         result = runner.invoke(app, ["stop"])
 
         assert result.exit_code == 0
+        assert format_datetime(convert_timezone(now)) in result.output
 
     def test_no_entry(self, mocker: MockFixture):
         mocker.patch(
@@ -139,6 +152,9 @@ class TestStatus:
         assert f"ID: {entries[0].id}" in result.output
         assert f"Title: {entries[0].title}" in result.output
         assert f"Description: {entries[0].description}" in result.output
+        assert (
+            f"Start at: {format_datetime(convert_timezone(entries[0].start_at))}" in result.output
+        )
         assert f"Time entry running: {format_timedelta(running_time(entries[0]))}" in result.output
 
     def test_no_entry_running(self, mocker: MockFixture):
@@ -467,8 +483,11 @@ class TestView:
         assert "Title: Test entry" in result.output
         assert "Description: This is a test entry" in result.output
         assert "Duration: 00h 01m 40s" in result.output
-        assert f"Start at: {format_datetime(now)}" in result.output
-        assert f"End at: {format_datetime(now + timedelta(seconds=100))}" in result.output
+        assert f"Start at: {format_datetime(convert_timezone(now))}" in result.output
+        assert (
+            f"End at: {format_datetime(convert_timezone(now + timedelta(seconds=100)))}"
+            in result.output
+        )
         assert f"Project: {project.name}" in result.output
         assert "Tags: Tag1, Tag2" in result.output
 

@@ -1,6 +1,12 @@
 import datetime as _datetime
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import typer
+
+from jikan.config import load_config
+from jikan.lib.print import warn
+
+config = load_config()
 
 
 def utc_now() -> _datetime.datetime:
@@ -16,6 +22,16 @@ def ensure_utc_aware(dt: _datetime.datetime) -> _datetime.datetime:
 def format_datetime(d: _datetime.datetime) -> str:
     d_str = d.strftime("%Y-%m-%d %H:%M:%S")
     return d_str
+
+
+def convert_timezone(d: _datetime.datetime) -> _datetime.datetime:
+    tz_str = config.timezone
+    try:
+        tz = ZoneInfo(tz_str)
+    except ZoneInfoNotFoundError:
+        warn("timezone config is invalid. Timezone UTC is used")
+        tz = ZoneInfo("UTC")
+    return ensure_utc_aware(d).astimezone(tz=tz)
 
 
 def format_timedelta(d: _datetime.timedelta) -> str:
