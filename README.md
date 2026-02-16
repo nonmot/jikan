@@ -92,6 +92,24 @@ Jikan stores data in SQLite at:
 ~/.jikan/database.db
 ```
 
+## Configuration
+
+Jikan uses a configuration file located at:
+
+```
+~/.jikan/config.toml
+```
+
+### Default Settings
+
+- **Timezone**: `Asia/Tokyo` (デフォルト)
+
+You can customize the timezone by creating or editing the config file:
+
+```toml
+timezone = "America/New_York"  # or any valid timezone
+```
+
 ## Roadmap
 
 - [ ] Entry switching

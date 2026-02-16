@@ -22,7 +22,7 @@ from jikan.core.entry import (
 )
 from jikan.core.project import ProjectNotFoundError
 from jikan.db import create_db_and_tables
-from jikan.lib.datetime import format_datetime, format_timedelta, parse_dt
+from jikan.lib.datetime import convert_timezone, format_datetime, format_timedelta, parse_dt
 from jikan.lib.print import error, success, warn
 
 console = Console()
@@ -49,7 +49,7 @@ def start(
 ):
     try:
         new_entry = start_time_entry(id, title, description)
-        success(f"Time entry started at {new_entry.start_at}")
+        success(f"Time entry started at {format_datetime(convert_timezone(new_entry.start_at))}")
     except EntryAlreadyRunningError as e:
         error("Time entry is already running")
         raise typer.Exit(code=1) from e
@@ -62,7 +62,10 @@ def start(
 def stop():
     try:
         entry = stop_time_entry()
-        success(f"Time entry stopped at {entry.end_at}")
+        if entry.end_at is None:
+            error("Entry end_at must be set after stopping")
+            raise typer.Exit(code=2)
+        success(f"Time entry stopped at {format_datetime(convert_timezone(entry.end_at))}")
     except EntryNotRunningError as e:
         error("No time entry running")
         raise typer.Exit(code=1) from e
@@ -90,6 +93,7 @@ def status():
     print(f"[bold]ID[/bold]: {running_entry[0].id}")
     print(f"[bold]Title[/bold]: {running_entry[0].title}")
     print(f"[bold]Description[/bold]: {running_entry[0].description}")
+    print(f"[bold]Start at[/bold]: {format_datetime(convert_timezone(running_entry[0].start_at))}")
     print(f"[bold]Time entry running[/bold]: {format_timedelta(running_time(running_entry[0]))}")
     print(
         f"[bold]Project[/bold]: "
@@ -109,10 +113,10 @@ def list_cmd():
             str(entry.id),
             entry.title,
             entry.description,
-            format_datetime(entry.start_at),
-            format_datetime(entry.end_at) if entry.end_at is not None else "None",
-            format_datetime(entry.created_at),
-            format_datetime(entry.updated_at),
+            format_datetime(convert_timezone(entry.start_at)),
+            format_datetime(convert_timezone(entry.end_at)) if entry.end_at is not None else "None",
+            format_datetime(convert_timezone(entry.created_at)),
+            format_datetime(convert_timezone(entry.updated_at)),
             str(entry.project_id),
         )
     console.print(table)
@@ -206,11 +210,12 @@ def view(id: Annotated[int, typer.Argument(help="ID of entry to be viewed")]):
             f"[bold]Duration[/bold]: "
             f"{format_timedelta(entry.end_at - entry.start_at) if entry.end_at is not None else ''}"
         )
-        print(f"[bold]Start at[/bold]: {format_datetime(entry.start_at)}")
-        print(
-            f"[bold]End at[/bold]: "
-            f"{format_datetime(entry.end_at) if entry.end_at is not None else 'Still runnuing'}"
-        )
+        print(f"[bold]Start at[/bold]: {format_datetime(convert_timezone(entry.start_at))}")
+        if entry.end_at is not None:
+            end_at_str = format_datetime(convert_timezone(entry.end_at))
+        else:
+            end_at_str = "Still running"
+        print(f"[bold]End at[/bold]: {end_at_str}")
         print(f"[bold]Project[/bold]: {entry.project.name if entry.project is not None else ''}")
         print("[bold]Tags[/bold]: ", ", ".join(tag.name for tag in entry.tags), sep="")
     except EntryNotFoundError as e:
