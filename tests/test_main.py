@@ -184,32 +184,24 @@ class TestStatus:
 
 
 class TestList:
-    def test_success(self, mocker: MockFixture):
-        entries = [
-            Entry(id=1, project_id=1, title="Test1", description="Test", start_at=datetime.now()),
-            Entry(id=2, project_id=1, title="Test2", description="Test", start_at=datetime.now()),
-        ]
-        mocker.patch(
-            "jikan.main.list_time_entry",
-            return_value=entries,
-        )
+    def test_success(self, seed_entries):
+        result = runner.invoke(app, ["list", "--all"])
+
+        assert result.exit_code == 0, result.output
+        assert "Title" in result.output
+        assert "entry-1" in result.output
+        assert "entry-2" in result.output
+        assert "Running" in result.output
+        assert "project-1" in result.output
+        assert "Total:" in result.output
+
+    def test_no_entry(self, use_test_engine):
         result = runner.invoke(app, ["list"])
 
-        assert result.exit_code == 0
+        assert result.exit_code == 0, result.output
         assert "Title" in result.output
-        assert "Test1" in result.output
-        assert "Test2" in result.output
-
-    def test_no_entry(self, mocker: MockFixture):
-        entries = []
-        mocker.patch(
-            "jikan.main.list_time_entry",
-            return_value=entries,
-        )
-        result = runner.invoke(app, ["list"])
-
-        assert result.exit_code == 0
-        assert "Title" in result.output
+        assert "No entries" in result.output
+        assert "Total: 00h 00m 00s" in result.output
 
 
 class TestEdit:
@@ -240,7 +232,7 @@ class TestEdit:
                 "1990/01/01 12:34:56",
                 "--end",
                 "2000/01/01 23:59:59",
-                "--project",
+                "--project-id",
                 "1",
             ],
         )
@@ -335,7 +327,7 @@ class TestEdit:
             [
                 "edit",
                 "1",
-                "--project",
+                "--project-id",
                 "1000",
             ],
         )
@@ -379,7 +371,7 @@ class TestEdit:
 
         result = runner.invoke(
             app,
-            ["edit", "1", "--remove-tag", "1"],
+            ["edit", "1", "--remove-tag-id", "1"],
         )
 
         assert result.exit_code == 0
@@ -407,9 +399,9 @@ class TestEdit:
                 "1",
                 "--add-tag",
                 "2",
-                "--remove-tag",
+                "--remove-tag-id",
                 "1",
-                "--remove-tag",
+                "--remove-tag-id",
                 "2",
             ],
         )

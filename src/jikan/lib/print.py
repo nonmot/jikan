@@ -9,7 +9,7 @@ def error(message: str) -> None:
 
 def warn(message: str) -> None:
     warn_msg = typer.style("Warning", fg=typer.colors.YELLOW)
-    echo(warn_msg + ": " + message)
+    echo(warn_msg + ": " + message, err=True)
 
 
 def success(message: str) -> None:

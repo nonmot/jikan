@@ -121,13 +121,13 @@ def test_stop_list_view_and_edit_an_entry(cli: Cli, database_path: Path):
         "2026/01/01 09:00:00",
         "--end",
         "2026/01/01 10:30:00",
-        "--project",
+        "--project-id",
         "1",
         "--add-tag",
         "1",
         "--add-tag",
         "2",
-        "--remove-tag",
+        "--remove-tag-id",
         "1",
     )
     assert edited.returncode == 0, edited.stdout + edited.stderr
@@ -141,11 +141,11 @@ def test_stop_list_view_and_edit_an_entry(cli: Cli, database_path: Path):
         "title": "Edited task",
         "description": "Updated description",
         "project_id": 1,
-        "start_at": "2026-01-01 09:00:00.000000",
-        "end_at": "2026-01-01 10:30:00.000000",
+        "start_at": "2026-01-01 00:00:00.000000",
+        "end_at": "2026-01-01 01:30:00.000000",
     }
 
-    listed = cli("list")
+    listed = cli("list", "--all")
     assert listed.returncode == 0
     assert "Edited task" in listed.stdout
     viewed = cli("view", "1")
@@ -198,3 +198,12 @@ def test_confirmed_deletions_remove_entries_projects_and_tags(cli: Cli, database
     deleted_project = cli("project", "delete", "1", input="y\n")
     assert deleted_project.returncode == 0
     assert query_value(database_path, "SELECT COUNT(*) FROM project") == 0
+
+
+def test_child_environment_does_not_change_parent(cli: Cli):
+    import os
+
+    before = dict(os.environ)
+    initialize(cli)
+    assert cli("status", now="2026-11-01T00:00:00+09:00").returncode == 0
+    assert dict(os.environ) == before

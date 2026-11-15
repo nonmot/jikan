@@ -1,4 +1,5 @@
 import datetime as _datetime
+import os
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import typer
@@ -10,6 +11,20 @@ config = load_config()
 
 
 def utc_now() -> _datetime.datetime:
+    """Current UTC time, optionally fixed across CLI subprocesses for tests.
+
+    JIKAN_TEST_NOW accepts an ISO-8601 timestamp with an explicit UTC offset,
+    e.g. 2026-10-21T09:00:00+09:00. It is read on every call, not at import.
+    """
+    fixed = os.environ.get("JIKAN_TEST_NOW")
+    if fixed is not None:
+        try:
+            value = _datetime.datetime.fromisoformat(fixed)
+            if value.utcoffset() is None:
+                raise ValueError("timezone offset is required")
+        except ValueError as exc:
+            raise ValueError("JIKAN_TEST_NOW must be ISO-8601 with a timezone offset") from exc
+        return value.astimezone(_datetime.UTC)
     return _datetime.datetime.now(_datetime.UTC)
 
 
@@ -28,7 +43,7 @@ def convert_timezone(d: _datetime.datetime) -> _datetime.datetime:
     tz_str = config.timezone
     try:
         tz = ZoneInfo(tz_str)
-    except ZoneInfoNotFoundError:
+    except (ValueError, ZoneInfoNotFoundError):
         warn("timezone config is invalid. Timezone UTC is used")
         tz = ZoneInfo("UTC")
     return ensure_utc_aware(d).astimezone(tz=tz)
@@ -44,9 +59,27 @@ def format_timedelta(d: _datetime.timedelta) -> str:
 
 
 def parse_dt(value: str) -> _datetime.datetime:
-    fmt = "%Y/%m/%d %H:%M:%S"
+    """Parse local wall time in config.timezone, or an ISO time with an offset."""
     try:
-        parse_dt = _datetime.datetime.strptime(value, fmt)
-        return ensure_utc_aware(parse_dt)
+        normalized = value.strip().replace("/", "-")
+        if "T" not in normalized and " " not in normalized:
+            raise ValueError("A time is required")
+        parsed = _datetime.datetime.fromisoformat(normalized)
+        if parsed.tzinfo is None:
+            try:
+                tz = ZoneInfo(config.timezone)
+            except (ValueError, ZoneInfoNotFoundError):
+                warn("timezone config is invalid. Timezone UTC is used")
+                tz = ZoneInfo("UTC")
+            parsed = parsed.replace(tzinfo=tz)
+            # Reject nonexistent local times during a DST spring-forward gap.
+            roundtrip = parsed.astimezone(_datetime.UTC).astimezone(tz)
+            if roundtrip.replace(tzinfo=None) != parsed.replace(tzinfo=None):
+                raise ValueError("Local time does not exist in configured timezone")
+        return ensure_utc_aware(parsed)
     except ValueError as e:
-        raise typer.BadParameter("Invalid datetime. Use format like YYYY/MM/DD HH:MM:SS") from e
+        raise typer.BadParameter(
+            "Invalid datetime. Use YYYY-MM-DD HH:MM[:SS] in the configured timezone "
+            "or ISO-8601 with an offset (e.g. 2026-10-21T09:00:00+09:00). "
+            "Legacy YYYY/MM/DD HH:MM:SS is also accepted."
+        ) from e
