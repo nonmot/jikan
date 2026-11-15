@@ -40,5 +40,8 @@ jobs:
           uv run ruff check .
           uv run ruff format --check .
 
-      - name: Run tests
-        run: uv run pytest -q
+      - name: Run unit and command tests
+        run: uv run pytest -q --ignore=tests/e2e
+
+      - name: Run subprocess and PTY acceptance tests
+        run: uv run pytest -q tests/e2e
