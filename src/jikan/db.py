@@ -1,12 +1,11 @@
 from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager, contextmanager
-from datetime import timedelta
 from pathlib import Path
 
-from sqlmodel import Session, SQLModel, create_engine, inspect
+from sqlalchemy import text
+from sqlmodel import Session, SQLModel, create_engine
 
-from jikan.lib.datetime import utc_now
-from jikan.models import Entry, Project, Tag
+from jikan import models  # noqa: F401 — register tables before create_all
 
 SQLITE_FILE_NAME = "database.db"
 APP_DIR = Path.home() / ".jikan"
@@ -14,7 +13,7 @@ APP_DIR.mkdir(parents=True, exist_ok=True)
 SQLITE_PATH = APP_DIR / SQLITE_FILE_NAME
 SQLITE_URL = f"sqlite:///{SQLITE_PATH}"
 
-engine = create_engine(SQLITE_URL)
+engine = create_engine(SQLITE_URL, connect_args={"timeout": 30})
 
 SessionContextFactory = Callable[[], AbstractContextManager[Session]]
 
@@ -42,47 +41,20 @@ def reset_session_context_factory() -> None:
     _session_context_factory = _default_session_context
 
 
+@contextmanager
+def recording_session_context() -> Iterator[Session]:
+    """Serialize recording mutations before reading the running state.
+
+    BEGIN IMMEDIATE makes a competing SQLite process wait *before* it reads,
+    so start/start and start/switch cannot both observe an empty database.
+    Session.close rolls back every uncommitted change on failure.
+    """
+    with session_context() as session:
+        if session.get_bind().dialect.name == "sqlite":
+            session.execute(text("BEGIN IMMEDIATE"))
+        yield session
+
+
 def create_db_and_tables() -> None:
+    """Initialize an empty database; repeated initialization preserves data."""
     SQLModel.metadata.create_all(engine)
-
-    inspector = inspect(engine)
-    if inspector.has_table("project"):
-        print("Table project exist.")
-        return
-
-    project = Project(
-        name="Learn about jikan",
-        description="Learn about jikan to manage your time effectively!",
-        archived=False,
-    )
-    with Session(engine) as session:
-        session.add(project)
-        session.commit()
-        session.refresh(project)
-
-    tag1 = Tag(name="Read docs")
-    tag2 = Tag(name="Use jikan")
-    with Session(engine) as session:
-        session.add(tag1)
-        session.add(tag2)
-        session.commit()
-        session.refresh(tag1)
-        session.refresh(tag2)
-
-    assert project.id is not None
-    entry = Entry(
-        title="Install jikan and give it a try",
-        description="Dive in jikan to explore what it's all about!",
-        project=project,
-        tags=[tag1, tag2],
-    )
-    inbox_entry = Entry(
-        title="Inbox",
-        tags=[tag1, tag2],
-    )
-    entry.end_at = utc_now() + timedelta(seconds=10)
-    inbox_entry.end_at = utc_now() + timedelta(seconds=10)
-    with Session(engine) as session:
-        session.add(entry)
-        session.add(inbox_entry)
-        session.commit()

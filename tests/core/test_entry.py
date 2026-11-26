@@ -81,7 +81,8 @@ class TestEditEntry:
     def test_remove_tag_not_exist(self, seed_entries: None):
         entry = get_entry(1)
         tags_id_before = {t.id for t in entry.tags}
-        edit_entry(entry, remove_tags_id=[1000])
+        with pytest.raises(TagNotFoundError):
+            edit_entry(entry, remove_tags_id=[1000])
         entry = get_entry(1)
 
         tags_id_after = {t.id for t in entry.tags}
@@ -149,7 +150,7 @@ class TestEntryDelete:
 
 
 class TestStartTimeEntry:
-    def test_success(self, use_test_engine: None):
+    def test_success(self, seed_projects: None):
         entries_before = list_time_entry()
 
         start_time_entry(1, "Test", "Test")
@@ -160,7 +161,7 @@ class TestStartTimeEntry:
         assert entries_after[-1].description == "Test"
         assert entries_after[-1].end_at is None
 
-    def test_empty_title_success(self, use_test_engine: None):
+    def test_empty_title_success(self, seed_projects: None):
         entries_before = list_time_entry()
 
         start_time_entry(1, "", "")
@@ -171,7 +172,7 @@ class TestStartTimeEntry:
         assert entries_after[-1].description == ""
         assert entries_after[-1].end_at is None
 
-    def test_returned_value_has_correct_property(self, use_test_engine: None):
+    def test_returned_value_has_correct_property(self, seed_projects: None):
         entry = start_time_entry(1, "Test", "Test")
 
         assert entry.title == "Test"
@@ -215,7 +216,7 @@ class TestGetRunningEntry:
 
 
 class TestListTimeEntry:
-    def test_success(self, use_test_engine: None):
+    def test_success(self, seed_projects: None):
         start_time_entry(1, "Test1", "Test1")
         stop_time_entry()
         start_time_entry(1, "Test2", "Test2")
